@@ -86,6 +86,8 @@ pnpm-debug.log*
 *.dump
 *.parquet
 *.feather
+# Exception for Docs
+!docs/*.sql
 
 # Case study datasets (Only commit small samples)
 # Keep data/sample/ tracked; ignore everything else under data/
