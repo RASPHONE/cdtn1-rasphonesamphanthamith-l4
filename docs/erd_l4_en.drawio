@@ -1,0 +1,54 @@
+<mxGraphModel dx="1414" dy="887" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="issue_category&#xa;PK category_id&#xa;UK category_name&#xa;default_priority&#xa;is_active" vertex="1">
+      <mxGeometry height="110" width="250" x="970" y="198" as="geometry" />
+    </mxCell>
+    <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="technician&#xa;PK technician_id&#xa;UK technician_code&#xa;ho_ten&#xa;center_id (external master)&#xa;level&#xa;is_active" vertex="1">
+      <mxGeometry height="140" width="250" x="575" y="483" as="geometry" />
+    </mxCell>
+    <mxCell id="12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="technician_skill&#xa;PK,FK technician_id&#xa;PK,FK category_id&#xa;proficiency (1-5, CON-04)" vertex="1">
+      <mxGeometry height="100" width="250" x="920" y="503" as="geometry" />
+    </mxCell>
+    <mxCell id="13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="ticket&#xa;PK ticket_id&#xa;UK ticket_code&#xa;center_id (QT-14 scope)&#xa;customer_name (snapshot)&#xa;customer_phone (snapshot, QT-15)&#xa;serial_no (snapshot, NOT UNIQUE)&#xa;issue_desc&#xa;FK category_id NOT NULL&#xa;priority&#xa;status (QT-06 values)&#xa;FK technician_id NULL (QT-07)&#xa;received_at / due_date / closed_at&#xa;is_warranty / is_deleted (QT-13)" vertex="1">
+      <mxGeometry height="300" width="290" x="580" y="103" as="geometry" />
+    </mxCell>
+    <mxCell id="14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="appointment&#xa;PK appointment_id&#xa;FK ticket_id NOT NULL&#xa;FK technician_id NOT NULL (snapshot)&#xa;center_id (snapshot)&#xa;loai (CON-02)&#xa;trang_thai (CON-03)&#xa;ngay_hen&#xa;gio_bat_dau / gio_ket_thuc (CON-01)" vertex="1">
+      <mxGeometry height="200" width="290" x="190" y="453" as="geometry" />
+    </mxCell>
+    <mxCell id="15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;spacingTop=6;" value="ticket_status_log&#xa;PK log_id&#xa;FK ticket_id NOT NULL&#xa;from_status NULL / to_status&#xa;changed_at&#xa;changed_by (external identity)&#xa;note (QT-07 reason)" vertex="1">
+      <mxGeometry height="160" width="250" x="210" y="173" as="geometry" />
+    </mxCell>
+    <mxCell id="20" edge="1" parent="1" source="12" style="endArrow=ERone;html=1;fontSize=12;edgeStyle=entityRelationEdgeStyle;startArrow=ERoneToMany;startFill=1;endFill=0;" target="11" value="1..N">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="21" edge="1" parent="1" source="12" style="endArrow=ERone;html=1;fontSize=12;startArrow=ERoneToMany;startFill=1;endFill=0;edgeStyle=orthogonalEdgeStyle;" target="10" value="N..1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="22" edge="1" parent="1" source="13" style="endArrow=ERone;html=1;fontSize=12;edgeStyle=entityRelationEdgeStyle;startArrow=ERoneToMany;startFill=1;endFill=0;" target="10" value="N..1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="23" edge="1" parent="1" source="13" style="endArrow=none;html=1;fontSize=12;startArrow=ERoneToMany;startFill=0;endFill=0;edgeStyle=orthogonalEdgeStyle;" target="11" value="0..1..N">
+      <mxGeometry relative="1" x="0.0095" as="geometry" />
+    </mxCell>
+    <mxCell id="24" edge="1" parent="1" source="14" style="endArrow=ERone;html=1;fontSize=12;edgeStyle=entityRelationEdgeStyle;startArrow=ERoneToMany;startFill=1;endFill=0;" target="13" value="N..1">
+      <mxGeometry relative="1" x="-0.0018" as="geometry" />
+    </mxCell>
+    <mxCell id="25" edge="1" parent="1" source="14" style="endArrow=ERone;html=1;fontSize=12;edgeStyle=entityRelationEdgeStyle;startArrow=ERoneToMany;startFill=1;endFill=0;" target="11" value="N..1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="26" edge="1" parent="1" source="15" style="endArrow=ERone;html=1;fontSize=12;edgeStyle=entityRelationEdgeStyle;startArrow=ERoneToMany;startFill=0;endFill=0;" target="13" value="N..1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="30" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Legend&#xa;PK / UK / FK prefixes as labelled; edge label = cardinality&#xa;(N..0..1 means FK nullable: unassigned ticket).&#xa;Crow&#39;s-foot rendering optional; cardinality labels are authoritative." vertex="1">
+      <mxGeometry height="90" width="380" x="160" y="693" as="geometry" />
+    </mxCell>
+    <mxCell id="31" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Indexes (each tied to an NFR/FR)&#xa;idx_ticket_unassigned (partial) -&gt; NFR1, FR1&#xa;idx_ticket_technician_status -&gt; FR8&#xa;idx_technician_center (partial) -&gt; FR2&#xa;idx_skill_lookup INCLUDE -&gt; NFR2, FR2&#xa;idx_appointment_overlap -&gt; FR7, US6&#xa;idx_log_ticket -&gt; QT-06 audit" vertex="1">
+      <mxGeometry height="120" width="330" x="560" y="678" as="geometry" />
+    </mxCell>
+    <mxCell id="32" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fontStyle=1;fillColor=#FCE4E4;strokeColor=#B85C5C;" value="EXTERNAL MASTER DATA (not modeled in L4, SRS §5 notes):&#xa;customer, device/product, service_center, employee.&#xa;ticket stores snapshots customer_name, customer_phone, serial_no;&#xa;changed_by and center_id are external references by design." vertex="1">
+      <mxGeometry height="100" width="330" x="910" y="688" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
