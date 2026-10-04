@@ -1,0 +1,173 @@
+<mxfile host="app.diagrams.net" version="24.0.0" type="device">
+  <diagram id="wf-m1" name="M1 Unassigned list">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="M1 — UNASSIGNED WARRANTY TICKET LIST (List screen)&#10;Actor: Center Manager · UC1 · US1, US8 · FR1, FR9" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="820" height="620" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="Filters (FR9):" style="text;html=1;align=left;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="92" width="90" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="Issue category ▾ (issue_category.category_name)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="155" y="87" width="250" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="Priority ▾ (ticket.priority)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="87" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="[Apply filters]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DDDDDD;strokeColor=#333333;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="87" width="110" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="Sorted by due_date ascending (FR1 / US1 AC1) · scope: center_id = manager center · status = MOI · technician_id NULL · is_warranty = true · is_deleted = false" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="125" width="780" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="780" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" value="ticket_code | customer_name | customer_phone | serial_no | issue_category | priority | received_at | due_date | action" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#666666;align=left;spacingLeft=6;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="BH-000123/2026 | Nguyen Van An | 0901234567 | SN123456789012 | MAN_HINH | CAO | 2026-09-08 08:00 | 2026-09-09 08:00 | [Assign]" style="text;html=1;align=left;spacingLeft=6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="184" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="BH-000456/2026 | Tran Thi Binh | 0912345678 | SN987654321098 | PIN | TRUNG_BINH | 2026-09-08 10:15 | 2026-09-11 10:15 | [Assign]" style="text;html=1;align=left;spacingLeft=6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="208" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="… (20 rows per page)" style="text;html=1;align=left;spacingLeft=6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="232" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="Page 1 of N · 20 rows/page · server-side pagination and sorting (NFR1)" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="278" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="Empty-state strip (US1 AC2): No unassigned warranty tickets — [Assign] action hidden" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="310" width="780" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="15" value="Message / error area (generic): e.g. access denied, HTTP 403 on cross-center request (QT-14 / NFR3 / US1 AC3)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="352" width="780" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="16" value="M1 annotations&#10;Screen type: List.&#10;Field→column: every table column is a ticket column, or issue_category.category_name via FK; customer_phone shown FULL (Center Manager, QT-15).&#10;Actions: [Assign] opens M2 (UC3 entry); [Apply filters] = FR9.&#10;States: empty state = US1 AC2 (AC-driven visible state, not a written exception flow); generic message area covers unexpected errors incl. 403 (the 403 itself is documented in the API contract).&#10;UC1 has no written exception flows, so no further error slots are required (check-6 obligation set = written flows of UC3/UC4)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=10;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="900" y="40" width="340" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="17" value="Wireframe kit legend&#10;light-gray box = input / dropdown&#10;dark-gray box = button&#10;dashed box = message / state area&#10;container + shaded row = table with header&#10;Grayscale only: no colors, fonts, logos (not graded)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=10;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="900" y="260" width="340" height="120" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="wf-m2" name="M2 Assignment">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="M2 — TICKET DETAIL &amp; TECHNICIAN ASSIGNMENT (Detail screen)&#10;Actor: Center Manager · UC2, UC3 · US2, US3, US4 · FR2, FR3, FR4, FR5, FR8" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="820" height="640" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="Ticket summary (read-only)" style="text;html=1;align=left;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="92" width="300" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="ticket_code: BH-000123/2026 · issue_category: MAN_HINH · priority: CAO&#10;due_date: 2026-09-09 08:00 · customer_name: Nguyen Van An&#10;customer_phone: 0901234567 (full, QT-15) · serial_no: SN123456789012" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;verticalAlign=top;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="780" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="Qualified technicians (UC2 / FR2: same center, is_active = true, proficiency ≥ 3) with workload (FR8)" style="text;html=1;align=left;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="190" width="780" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="215" width="780" height="86" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="( ) select | technician (technician.ho_ten) | proficiency (technician_skill.proficiency) | workload (computed open tickets)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#666666;align=left;spacingLeft=6;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="215" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="(o) selected | Le Van Cuong (KT007) | 4 | 6 open" style="text;html=1;align=left;spacingLeft=6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="239" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" value="( ) | Pham Thi Dung (KT012) | 3 | 9 open" style="text;html=1;align=left;spacingLeft=6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="263" width="780" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="Single-select radio only — QT-07 (at most one technician at a time)" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="308" width="500" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="Reassignment reason — required ONLY when the ticket already has a technician (QT-07 / FR5); stored in ticket_status_log.note" style="text;html=1;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="335" width="780" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="[ free text — required on reassignment ]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="358" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="[Confirm assignment]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DDDDDD;strokeColor=#333333;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="402" width="160" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="[Schedule appointment → M3]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DDDDDD;strokeColor=#333333;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="402" width="200" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="15" value="Message (UC3-3a): No qualified technician available — [Confirm assignment] disabled" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="780" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="16" value="Message (UC3-5a): Reason is required when changing technician. — selection kept" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="490" width="780" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="17" value="Validation / rollback area (UC3-7a ineligible technician rejected; UC3-8a save failed → full rollback, retry, entered data kept — NFR5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="530" width="780" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="18" value="M2 annotations&#10;Screen type: Detail (hosts UC2 suggestion + UC3 assignment).&#10;Field→column: summary = ticket columns; table = technician.ho_ten and technician_skill.proficiency; workload is COMPUTED at query time (statuses DA_PHAN_CONG / DANG_XU_LY / CHO_LINH_KIEN) and is never stored.&#10;Reason input → ticket_status_log.note (write path).&#10;Buttons: [Confirm assignment] = UC3 step 6; [Schedule appointment] = UC4 entry, enabled once an assignment exists.&#10;Master-data note: technician / technician_skill / issue_category are imported from the case-study dataset; no admin screen in v0.5 (NFR7 insert-only)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=10;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="900" y="40" width="340" height="210" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="wf-m3" name="M3 Appointment">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="M3 — APPOINTMENT CREATE / UPDATE (Create-Edit screen)&#10;Actor: Center Manager · UC4 · US5, US6 · FR6, FR7" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="820" height="580" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="ticket_code: BH-000123/2026 · assigned technician: Le Van Cuong (KT007) · center_id: 2  (read-only, system-derived)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="780" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="Appointment type (appointment.loai) *" style="text;html=1;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="152" width="260" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="▾ GIAO_MAY (Handover) / NHAN_MAY (Receipt) — v0.5 offers only these two; KIEM_TRA_TAI_CHO deferred" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="174" width="560" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="ngay_hen *" style="text;html=1;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="[date picker]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="242" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="gio_bat_dau *" style="text;html=1;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="220" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" value="[time picker]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="242" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="gio_ket_thuc *" style="text;html=1;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="220" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="[time picker]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="242" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="* required (US5 AC3). No location and no note fields in v0.5 (deferred). CON-01: gio_ket_thuc &gt; gio_bat_dau." style="text;html=1;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="282" width="780" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="[Save &amp; confirm appointment → trang_thai = DA_XAC_NHAN]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DDDDDD;strokeColor=#333333;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="310" width="330" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="CONFLICT WARNING (UC4-5a / FR7 / US6): technician already has an active appointment (DA_DAT / DA_XAC_NHAN) 09:00–10:00 on this ngay_hen. Save BLOCKED until the time is changed or the operation is cancelled. No override in v0.5." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="780" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="15" value="Field validation area (UC4-4a missing required fields → highlight + keep entered data; UC4-4b Appointment time must be in the future.; UC4-4c End time must be after start time.)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="416" width="780" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="16" value="Rollback area (UC4-6a): save failed → no duplicate appointment, entered data kept, retry allowed (NFR5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="466" width="780" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="17" value="M3 annotations&#10;Screen type: Create/Edit.&#10;Field→column: loai, ngay_hen, gio_bat_dau, gio_ket_thuc are appointment columns; ticket_id, technician_id, center_id are system-derived from context (NOT entered); trang_thai is set by the confirm action.&#10;Conflict check excludes the appointment being updated and ignores HOAN_TAT / KHACH_HUY / KHACH_KHONG_DEN.&#10;Absent by design: location and ghi_chu/note (deferred); KIEM_TRA_TAI_CHO option (deferred; enum kept in DB for historical rows)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=10;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="900" y="40" width="340" height="190" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
