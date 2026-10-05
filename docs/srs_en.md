@@ -2,7 +2,7 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.2
+- **Version:** v0.3
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
 
@@ -21,19 +21,19 @@ This SRS specifies flow **L4 — Technician Assignment and Appointment Schedulin
 
 ### 1.2 Scope in one sentence
 
-Manage technician assignment and appointment scheduling for warranty tickets: the center manager reviews incoming warranty tickets, the system identifies technicians qualified for the ticket’s issue category and working at the same service center, the manager assigns at most one technician while considering current workload, then creates or confirms the customer’s device handover/receipt appointment, checks for appointment conflicts, and finishes when the assignment is saved and the appointment is confirmed.
+Manage technician assignment and appointment scheduling for warranty tickets: the center manager reviews incoming warranty tickets, the system identifies technicians qualified for the ticket's issue category and working at the same service center, the manager assigns at most one technician while considering current workload, then creates or confirms the customer's device handover/receipt appointment, checks for appointment conflicts, and finishes when the assignment is saved and the appointment is confirmed.
 
 ### 1.3 Out of scope and intentionally deferred
 
 The following capabilities are explicitly excluded from v0.5:
 
-1. **Customer-facing portal.** Customers do not log in, confirm, reschedule, or receive system notifications. The center manager acts on the customer’s behalf.
+1. **Customer-facing portal.** Customers do not log in, confirm, reschedule, or receive system notifications. The center manager acts on the customer's behalf.
 2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in v0.5.
 3. **Technician self-service UI.** The Technician actor is specified but deferred to v1.1.
 4. **Reporting and analytics.** Dashboards belong to flows L6/L10, not L4.
 5. **Authentication provider.** Login is treated as infrastructure, not a business flow.
 6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but v0.5 only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
-7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.5. Handover/receipt appointments are associated with the ticket’s service center. On-site address handling and appointment notes are deferred.
+7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.5. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 
 ### 1.4 Terminology
 
@@ -49,6 +49,7 @@ This table is the single source of truth for diagrams, wireframes, DDL, and API 
 | Service center | Trung tâm bảo hành | `center_id` | One of six physical repair facilities; treated as external master data in the L4 prototype |
 | Center manager | Quản lý trung tâm | `center_manager` | Employee who assigns technicians and schedules appointments |
 | Technician | Kỹ thuật viên | `technician` | Employee who performs repairs |
+| Technician name | Họ tên kỹ thuật viên | `technician.ho_ten` | Display name imported from `technicians.csv`; shown on M2 and M3 |
 | Technician skill | Tay nghề kỹ thuật viên | `technician_skill` | Proficiency of a technician in an issue category |
 | Proficiency | Mức thành thạo | `technician_skill.proficiency` | Integer 1–5; eligibility requires ≥ 3 |
 | Workload | Khối lượng công việc | derived | Count of assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN` |
@@ -107,29 +108,29 @@ Role permissions:
 
 | ID | Requirement | Source | MoSCoW |
 |---|---|---|---|
-| FR1 | The system shall display warranty tickets with `status = MOI`, `is_warranty = true`, `technician_id IS NULL`, `is_deleted = false`, and `center_id` equal to the manager’s service center, sorted ascending by `due_date`. | QT-14 | MUST |
-| FR2 | The system shall suggest only technicians who belong to the same service center as the ticket, are active, and have proficiency ≥ 3 in the ticket’s issue category. | QT-08 | MUST |
+| FR1 | The system shall display warranty tickets with `status = MOI`, `is_warranty = true`, `technician_id IS NULL`, `is_deleted = false`, and `center_id` equal to the manager's service center, sorted ascending by `due_date`. | QT-14 | MUST |
+| FR2 | The system shall suggest only technicians who belong to the same service center as the ticket, are active, and have proficiency ≥ 3 in the ticket's issue category. | QT-08 | MUST |
 | FR3 | The system shall assign a warranty ticket to at most one technician at any point in time. | QT-07 | MUST |
 | FR4 | The system shall reject any assignment where the selected technician does not satisfy FR2. | QT-08 | MUST |
-| FR5 | The system shall require and store a reason whenever a ticket’s assigned technician is changed. | QT-07 | MUST |
+| FR5 | The system shall require and store a reason whenever a ticket's assigned technician is changed. | QT-07 | MUST |
 | FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.5. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.5 UI. | — | MUST |
 | FR7 | The system shall detect and block saving when a new or updated appointment overlaps in time with an active appointment of the same technician on the same `ngay_hen`. Active statuses are `DA_DAT` and `DA_XAC_NHAN`. | — | MUST |
-| FR8 | The system shall display each qualified technician’s current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | — | SHOULD |
+| FR8 | The system shall display each qualified technician's current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | — | SHOULD |
 | FR9 | The system shall filter the unassigned ticket list by issue category and priority. | — | SHOULD |
 
 ### 3.2 Core User Stories for v0.5
 
 **US1 (MUST).** As a center manager, I want to see all unassigned warranty tickets for my service center sorted by due date, so that I can start assigning before tickets are forgotten.
 
-**US2 (MUST).** As a center manager, I want the system to suggest technicians who have proficiency ≥ 3 in the warranty ticket’s issue category and work at the same service center, so that I do not assign a repair to a technician without the required skill.
+**US2 (MUST).** As a center manager, I want the system to suggest technicians who have proficiency ≥ 3 in the warranty ticket's issue category and work at the same service center, so that I do not assign a repair to a technician without the required skill.
 
-**US3 (SHOULD).** As a center manager, I want to see each qualified technician’s current open warranty ticket count, so that I can balance workload instead of assigning by memory.
+**US3 (SHOULD).** As a center manager, I want to see each qualified technician's current open warranty ticket count, so that I can balance workload instead of assigning by memory.
 
 **US4 (MUST).** As a center manager, I want to assign or reassign a warranty ticket to exactly one qualified technician, recording a reason when the technician is changed, so that ownership is clear and traceable.
 
-**US5 (MUST).** As a center manager, I want to schedule and confirm a device handover or receipt appointment for an assigned warranty ticket, choosing either `GIAO_MAY` or `NHAN_MAY`, so that the appointment is recorded and the technician’s schedule is updated.
+**US5 (MUST).** As a center manager, I want to schedule and confirm a device handover or receipt appointment for an assigned warranty ticket, choosing either `GIAO_MAY` or `NHAN_MAY`, so that the appointment is recorded and the technician's schedule is updated.
 
-**US6 (MUST).** As a center manager, I want the system to warn and block me when an appointment conflicts with the technician’s existing active appointments, so that I avoid double-booking.
+**US6 (MUST).** As a center manager, I want the system to warn and block me when an appointment conflicts with the technician's existing active appointments, so that I avoid double-booking.
 
 **US8 (SHOULD).** As a center manager, I want to filter unassigned warranty tickets by issue category and priority, so that I can batch assignments by skill area.
 
@@ -140,7 +141,7 @@ Role permissions:
 | US7 | Technician views own assigned tickets | Deferred to v1.1 | Technician-facing UI is not implemented in v0.5 |
 | US9 | View assignment history | Deferred / COULD | Possible future audit screen based on `ticket_status_log` |
 | US10 | Record appointment cancellation or no-show | Deferred / COULD | Would use `KHACH_HUY` and `KHACH_KHONG_DEN` |
-| US11 | Customer views/confirms/reschedules appointment online | WON’T | Customer-facing portal is intentionally excluded |
+| US11 | Customer views/confirms/reschedules appointment online | WON'T | Customer-facing portal is intentionally excluded |
 
 ### 3.4 Acceptance Criteria for MUST Stories
 
@@ -153,21 +154,21 @@ Role permissions:
 #### US2
 
 - **AC1.** GIVEN a warranty ticket has issue category `MAN_HINH` and belongs to service center 2, WHEN the manager opens the assignment screen, THEN the system lists technicians where `center_id = 2`, `is_active = true`, and proficiency for `MAN_HINH` ≥ 3.
-- **AC2.** GIVEN no technician at service center 2 has proficiency ≥ 3 for the ticket’s issue category, WHEN the manager opens the assignment screen, THEN the system shows “No qualified technician available” and disables the Assign action.
-- **AC3.** GIVEN a technician has proficiency = 2 for the ticket’s issue category, WHEN the system suggests technicians, THEN that technician is not included in the qualified list.
+- **AC2.** GIVEN no technician at service center 2 has proficiency ≥ 3 for the ticket's issue category, WHEN the manager opens the assignment screen, THEN the system shows "No qualified technician available" and disables the Assign action.
+- **AC3.** GIVEN a technician has proficiency = 2 for the ticket's issue category, WHEN the system suggests technicians, THEN that technician is not included in the qualified list.
 
 #### US4
 
 - **AC1.** GIVEN an unassigned warranty ticket in `MOI` status and a qualified technician selected, WHEN the manager confirms assignment, THEN the system saves `technician_id`, changes ticket status to `DA_PHAN_CONG`, and writes a `ticket_status_log` entry.
-- **AC2.** GIVEN the warranty ticket is already assigned to technician A, WHEN the manager changes it to technician B without entering a reason, THEN the system rejects the change and displays “Reason is required when changing technician.”
-- **AC3.** GIVEN the selected technician does not have proficiency ≥ 3 for the ticket’s issue category or belongs to a different service center, WHEN the manager confirms assignment or reassignment, THEN the system rejects with a validation error.
+- **AC2.** GIVEN the warranty ticket is already assigned to technician A, WHEN the manager changes it to technician B without entering a reason, THEN the system rejects the change and displays "Reason is required when changing technician."
+- **AC3.** GIVEN the selected technician does not have proficiency ≥ 3 for the ticket's issue category or belongs to a different service center, WHEN the manager confirms assignment or reassignment, THEN the system rejects with a validation error.
 
 #### US5
 
-- **AC1.** GIVEN an assigned warranty ticket, WHEN the manager enters a valid `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`, and `loai = GIAO_MAY` or `NHAN_MAY`, and confirms, THEN the system creates the appointment linked to the ticket, the assigned technician, and the ticket’s service center with `trang_thai = DA_XAC_NHAN`.
-- **AC2.** GIVEN the combination of `ngay_hen` and `gio_bat_dau` is earlier than the current date and time, WHEN the manager saves, THEN the system rejects the appointment and displays “Appointment time must be in the future.”
+- **AC1.** GIVEN an assigned warranty ticket, WHEN the manager enters a valid `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`, and `loai = GIAO_MAY` or `NHAN_MAY`, and confirms, THEN the system creates the appointment linked to the ticket, the assigned technician, and the ticket's service center with `trang_thai = DA_XAC_NHAN`.
+- **AC2.** GIVEN the combination of `ngay_hen` and `gio_bat_dau` is earlier than the current date and time, WHEN the manager saves, THEN the system rejects the appointment and displays "Appointment time must be in the future."
 - **AC3.** GIVEN one of the required appointment fields (`ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`, `loai`) is missing, WHEN the manager saves, THEN the system rejects the save, highlights missing fields, and keeps entered data.
-- **AC4.** GIVEN `gio_ket_thuc` is not after `gio_bat_dau`, WHEN the manager saves, THEN the system rejects the save and displays “End time must be after start time.”
+- **AC4.** GIVEN `gio_ket_thuc` is not after `gio_bat_dau`, WHEN the manager saves, THEN the system rejects the save and displays "End time must be after start time."
 
 #### US6
 
@@ -212,12 +213,10 @@ Role permissions:
 ### Design notes
 
 1. **Appointment conflict is blocking in v0.5.** Conflict detection is enforced at the service layer. If an active overlap exists, the system blocks saving until the manager changes the time or cancels the operation. No override is allowed in v0.5.
-
 2. **External master data boundary.** Customer, device/product, service center, and employee master data are external to the L4 prototype. The L4 ticket stores snapshot fields needed for assignment and appointment display: `customer_name`, `customer_phone`, and `serial_no`. `center_id` is used for center scoping. `ticket_status_log.changed_by` stores the acting user identity without a foreign key to an employee table.
-
 3. **Appointment snapshots.** The `appointment` table stores `technician_id` and `center_id` as scheduling-time snapshots. This is justified because reassignment can occur after scheduling, and the appointment event must preserve the technician and center responsible at the time of scheduling.
-
-4. **No appointment location or note in v0.5.** Handover and receipt appointments are associated with the ticket’s service center. On-site address handling and appointment notes are deferred.
+4. **No appointment location or note in v0.5.** Handover and receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
+5. **`ticket.category_id` is NOT NULL.** L2 classifies the issue category before L4 consumes the ticket; eligibility (QT-08) cannot be evaluated without it. Unclassified tickets never enter the L4 queue.
 
 ---
 
@@ -238,16 +237,34 @@ Role permissions:
 
 UC5 and UC6 are specified use cases without an associated FR at v0.5. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
 
-### 6.2 Functional requirement traceability
+### 6.2 Functional requirement traceability (design-phase extended matrix)
 
-| FR | Requirement | User Story | Use Case | MoSCoW | Test case |
-|---|---|---|---|---|---|
-| FR1 | Display unassigned warranty tickets sorted by due date | US1 | UC1 | MUST | BT3 |
-| FR2 | Suggest technicians with same center and proficiency ≥ 3 | US2 | UC2 | MUST | BT3 |
-| FR3 | Assign to at most one technician | US4 | UC3 | MUST | BT3 |
-| FR4 | Reject ineligible technician | US4 | UC3 | MUST | BT3 |
-| FR5 | Require reason on reassignment | US4 | UC3 | MUST | BT3 |
-| FR6 | Create/update handover/receipt appointment | US5 | UC4 | MUST | BT3 |
-| FR7 | Warn and block appointment conflict | US6 | UC4 | MUST | BT3 |
-| FR8 | Show technician workload count | US3 | UC2 | SHOULD | BT3 |
-| FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | BT3 |
+Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket detail & technician assignment · **M3** = Appointment create/update (source: `docs/wireframes_l4.drawio`).
+
+| FR | Requirement | User Story | Use Case | MoSCoW | Data table | Screen | Test case |
+|---|---|---|---|---|---|---|---|
+| FR1 | Display unassigned warranty tickets sorted by due date | US1 | UC1 | MUST | ticket | M1 | BT3 |
+| FR2 | Suggest technicians (same center, proficiency ≥ 3) | US2 | UC2 | MUST | technician, technician_skill, issue_category | M2 | BT3 |
+| FR3 | Assign to at most one technician | US4 | UC3 | MUST | ticket | M2 | BT3 |
+| FR4 | Reject ineligible technician | US4 | UC3 | MUST | technician_skill | M2 | BT3 |
+| FR5 | Require reason on reassignment | US4 | UC3 | MUST | ticket, ticket_status_log | M2 | BT3 |
+| FR6 | Create/update handover/receipt appointment | US5 | UC4 | MUST | appointment, ticket | M3 | BT3 |
+| FR7 | Warn and block appointment conflict | US6 | UC4 | MUST | appointment | M3 | BT3 |
+| FR8 | Show technician workload count | US3 | UC2 | SHOULD | ticket, technician | M2 | BT3 |
+| FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | BT3 |
+
+**Row read:** every FR (none is WON'T) has a User Story, Use Case, data table, and screen. No blank cells.
+
+**Column read (data table):** `ticket` (FR1, FR3, FR5, FR6, FR8, FR9), `technician` (FR2, FR8), `technician_skill` (FR2, FR4), `issue_category` (FR2, FR9), `appointment` (FR6, FR7), `ticket_status_log` (FR5). All six ERD tables appear at least once — no isolated table.
+
+**Column read (screen):** M1 (FR1, FR9), M2 (FR2–FR5, FR8), M3 (FR6, FR7). All three wireframes appear at least once — no orphan screen.
+
+---
+
+### Change log
+
+| Version | When | Change | Reason |
+|---|---|---|---|
+| v0.1 | BT1 draft | Initial analysis | — |
+| v0.2 | Phase 1 | Locked scope: Vietnamese status codes, 7 core stories, removed appointment `location`/`note`, external master-data boundary, filtered data subset | Dataset review and scope decisions |
+| v0.3 | Phase 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Design-phase checks (Patch 20) and Phase 4 column lock |
