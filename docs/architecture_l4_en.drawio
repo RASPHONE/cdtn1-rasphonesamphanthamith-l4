@@ -1,73 +1,75 @@
-<mxfile host="app.diagrams.net" version="24.0.0" type="device">
-  <diagram id="l4-architecture" name="Architecture L4 v0.5">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
-      <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="2" value="SYSTEM: Technician Assignment &amp; Appointment Scheduling (Flow L4) — v0.5" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="5" width="820" height="30" as="geometry"/>
-        </mxCell>
-        <mxCell id="3" value="LAYER 1 — PRESENTATION&#10;React (Vite) pages + Controllers · empty-field validation only · NO business rules · NO SQL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" vertex="1" parent="1">
-          <mxGeometry x="60" y="40" width="820" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="10" value="[ M1 ] Unassigned warranty&#10;ticket list (UC1, UC8)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="80" y="85" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="11" value="[ M2 ] Technician assignment&#10;(UC2, UC3)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="285" y="85" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="12" value="[ M3 ] Appointment&#10;create/update (UC4)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="490" y="85" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="13" value="TicketController · AssignmentController ·&#10;AppointmentController (HTTP in/out)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="695" y="85" width="170" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="20" value="LAYER 2 — BUSINESS (Service)&#10;ALL rules QT-06, QT-07, QT-08, QT-14, QT-15 live in this layer · does NOT know the storage technology" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" vertex="1" parent="1">
-          <mxGeometry x="60" y="200" width="820" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="21" value="TicketAssignmentService&#10;(QT-07 one technician + reason)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="80" y="245" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="22" value="TechnicianSuggestionService&#10;(QT-08 eligibility + FR8 workload)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="285" y="245" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="23" value="AppointmentService&#10;(FR6 create/update · FR7 conflict block)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="490" y="245" width="185" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="24" value="AccessControl&#10;(QT-14 center scope · QT-15 masking)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="695" y="245" width="170" height="55" as="geometry"/>
-        </mxCell>
-        <mxCell id="30" value="LAYER 3 — DATA ACCESS (Repository)&#10;interfaces hide SQL · NO business rules · in-memory implementations for unit tests" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" vertex="1" parent="1">
-          <mxGeometry x="60" y="360" width="820" height="110" as="geometry"/>
-        </mxCell>
-        <mxCell id="31" value="TicketRepository" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="80" y="405" width="185" height="45" as="geometry"/>
-        </mxCell>
-        <mxCell id="32" value="TechnicianRepository" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="285" y="405" width="185" height="45" as="geometry"/>
-        </mxCell>
-        <mxCell id="33" value="AppointmentRepository" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="490" y="405" width="185" height="45" as="geometry"/>
-        </mxCell>
-        <mxCell id="34" value="TicketStatusLogRepository" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="695" y="405" width="170" height="45" as="geometry"/>
-        </mxCell>
-        <mxCell id="40" value="LAYER 4 — STORAGE (PostgreSQL 16)&#10;schema-level integrity: PK · FK · CHECK · UNIQUE · INDEX&#10;tables: ticket, technician, technician_skill, issue_category, appointment, ticket_status_log&#10;indexes: idx_ticket_unassigned · idx_skill_lookup · idx_appointment_overlap · idx_log_ticket" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" vertex="1" parent="1">
-          <mxGeometry x="60" y="510" width="820" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="50" value="HTTP + JSON&#10;(API contract: docs/api_contract.md)" style="endArrow=block;endFill=1;html=1;fontSize=11;" edge="1" parent="1" source="3" target="20"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="51" value="calls via Repository interfaces&#10;(one-way dependency; lower layers never call up)" style="endArrow=block;endFill=1;html=1;fontSize=11;" edge="1" parent="1" source="20" target="30"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="52" value="SQL" style="endArrow=block;endFill=1;html=1;fontSize=11;" edge="1" parent="1" source="30" target="40"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="60" value="Legend&#10;[ ] = wireframe screen (M1–M3)&#10;arrow = one-way dependency direction&#10;arrow label = communication protocol&#10;(HTTP/JSON, interface call, SQL)" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
-          <mxGeometry x="920" y="40" width="320" height="110" as="geometry"/>
-        </mxCell>
-        <mxCell id="61" value="Security in the right layer&#10;QT-14 (center scope) and QT-15 (phone masking) are&#10;enforced in the Business layer: every Service receives&#10;caller context via AccessControl, NOT merely by hiding&#10;UI buttons. Cross-center request → HTTP 403 (NFR3)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fillColor=#FFF9E6;strokeColor=#B8860B;" vertex="1" parent="1">
-          <mxGeometry x="920" y="170" width="320" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="62" value="OUT OF SCOPE (WON'T): customer portal and SMS/email&#10;notifications · technician self-service UI (v1.1) ·&#10;on-site check workflow KIEM_TRA_TAI_CHO plus appointment&#10;location/note fields · reporting dashboards · login&#10;provider (infrastructure, not business)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=11;fontStyle=1;fillColor=#FCE4E4;strokeColor=#B85C5C;" vertex="1" parent="1">
-          <mxGeometry x="920" y="310" width="320" height="130" as="geometry"/>
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>
+<mxGraphModel dx="1414" dy="887" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="2" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;" value="SYSTEM: Technician Assignment &amp; Appointment Scheduling (Flow L4) — v0.5" vertex="1">
+      <mxGeometry height="30" width="820" x="60" y="5" as="geometry" />
+    </mxCell>
+    <mxCell id="3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" value="LAYER 1 — PRESENTATION&#xa;React (Vite) pages + Controllers · empty-field validation only · NO business rules · NO SQL" vertex="1">
+      <mxGeometry height="120" width="820" x="60" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="[ M1 ] Unassigned warranty&#xa;ticket list (UC1, UC8)" vertex="1">
+      <mxGeometry height="55" width="185" x="80" y="85" as="geometry" />
+    </mxCell>
+    <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="[ M2 ] Technician assignment&#xa;(UC2, UC3)" vertex="1">
+      <mxGeometry height="55" width="185" x="285" y="85" as="geometry" />
+    </mxCell>
+    <mxCell id="12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="[ M3 ] Appointment&#xa;create/update (UC4)" vertex="1">
+      <mxGeometry height="55" width="185" x="490" y="85" as="geometry" />
+    </mxCell>
+    <mxCell id="13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" value="TicketController · AssignmentController ·&#xa;AppointmentController (HTTP in/out)" vertex="1">
+      <mxGeometry height="55" width="170" x="695" y="85" as="geometry" />
+    </mxCell>
+    <mxCell id="20" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" value="LAYER 2 — BUSINESS (Service)&#xa;ALL rules QT-06, QT-07, QT-08, QT-14, QT-15 live in this layer · does NOT know the storage technology" vertex="1">
+      <mxGeometry height="120" width="820" x="60" y="200" as="geometry" />
+    </mxCell>
+    <mxCell id="21" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="TicketAssignmentService&#xa;(QT-07 one technician + reason)" vertex="1">
+      <mxGeometry height="55" width="185" x="80" y="245" as="geometry" />
+    </mxCell>
+    <mxCell id="22" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="TechnicianSuggestionService&#xa;(QT-08 eligibility + FR8 workload)" vertex="1">
+      <mxGeometry height="55" width="185" x="285" y="245" as="geometry" />
+    </mxCell>
+    <mxCell id="23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="AppointmentService&#xa;(FR6 create/update · FR7 conflict block)" vertex="1">
+      <mxGeometry height="55" width="185" x="490" y="245" as="geometry" />
+    </mxCell>
+    <mxCell id="24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="AccessControl&#xa;(QT-14 center scope · QT-15 masking)" vertex="1">
+      <mxGeometry height="55" width="170" x="695" y="245" as="geometry" />
+    </mxCell>
+    <mxCell id="30" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=12;spacingTop=6;" value="LAYER 3 — DATA ACCESS (Repository)&#xa;interfaces hide SQL · NO business rules · in-memory implementations for unit tests" vertex="1">
+      <mxGeometry height="110" width="820" x="60" y="360" as="geometry" />
+    </mxCell>
+    <mxCell id="31" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="TicketRepository" vertex="1">
+      <mxGeometry height="45" width="185" x="80" y="405" as="geometry" />
+    </mxCell>
+    <mxCell id="32" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="TechnicianRepository" vertex="1">
+      <mxGeometry height="45" width="185" x="285" y="405" as="geometry" />
+    </mxCell>
+    <mxCell id="33" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="AppointmentRepository" vertex="1">
+      <mxGeometry height="45" width="185" x="490" y="405" as="geometry" />
+    </mxCell>
+    <mxCell id="34" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" value="TicketStatusLogRepository" vertex="1">
+      <mxGeometry height="45" width="170" x="695" y="405" as="geometry" />
+    </mxCell>
+    <mxCell id="40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=15;spacingTop=6;" value="LAYER 4 — STORAGE (PostgreSQL 16)&#xa;schema-level integrity: PK · FK · CHECK · UNIQUE · INDEX&#xa;tables: ticket, technician, technician_skill, issue_category, appointment, ticket_status_log&#xa;indexes: idx_ticket_unassigned · idx_skill_lookup · idx_appointment_overlap · idx_log_ticket" vertex="1">
+      <mxGeometry height="120" width="820" x="60" y="510" as="geometry" />
+    </mxCell>
+    <mxCell id="50" edge="1" parent="1" source="3" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="20" value="HTTP + JSON&#xa;(API contract: docs/api_contract.md)">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="51" edge="1" parent="1" source="20" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="30" value="calls via Repository interfaces&#xa;(one-way dependency; lower layers never call up)">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="52" edge="1" parent="1" source="30" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="40" value="SQL">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="60" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Legend&#xa;[ ] = wireframe screen (M1–M3)&#xa;arrow = one-way dependency direction&#xa;arrow label = communication protocol&#xa;(HTTP/JSON, interface call, SQL)" vertex="1">
+      <mxGeometry height="110" width="320" x="920" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="61" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Security in the right layer&#xa;QT-14 (center scope) and QT-15 (phone masking) are&#xa;enforced in the Business layer: every Service receives&#xa;caller context via AccessControl, NOT merely by hiding&#xa;UI buttons. Cross-center request → HTTP 403 (NFR3)." vertex="1">
+      <mxGeometry height="120" width="320" x="920" y="170" as="geometry" />
+    </mxCell>
+    <mxCell id="62" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fontStyle=1;fillColor=#FCE4E4;strokeColor=#B85C5C;" value="OUT OF SCOPE (WON&#39;T): customer portal and SMS/email&#xa;notifications · technician self-service UI (v1.1) ·&#xa;on-site check workflow KIEM_TRA_TAI_CHO plus appointment&#xa;location/note fields · reporting dashboards · login&#xa;provider (infrastructure, not business)." vertex="1">
+      <mxGeometry height="130" width="320" x="920" y="310" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
