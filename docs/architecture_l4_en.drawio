@@ -59,7 +59,7 @@
     <mxCell id="51" edge="1" parent="1" source="20" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="30" value="calls via Repository interfaces&#xa;(one-way dependency; lower layers never call up)">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
-    <mxCell id="52" edge="1" parent="1" source="30" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="40" value="SQL">
+    <mxCell id="52" edge="1" parent="1" source="30" style="endArrow=block;endFill=1;html=1;fontSize=16;" target="40" value="SQL">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
     <mxCell id="60" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Legend&#xa;[ ] = wireframe screen (M1–M3)&#xa;arrow = one-way dependency direction&#xa;arrow label = communication protocol&#xa;(HTTP/JSON, interface call, SQL)" vertex="1">

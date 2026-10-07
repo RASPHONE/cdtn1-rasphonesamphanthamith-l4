@@ -47,10 +47,10 @@
           <mxGeometry height="34" width="780" x="60" y="416" as="geometry" />
         </mxCell>
         <mxCell id="16" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="M1 annotations&#xa;Screen type: List.&#xa;Field→column: every table column is a ticket column, or issue_category.category_name via FK; customer_phone shown FULL (Center Manager, QT-15).&#xa;Actions: [Assign] opens M2 (UC3 entry); [Apply filters] = FR9.&#xa;States: empty state = US1 AC2 (AC-driven visible state, not a written exception flow); generic message area covers unexpected errors incl. 403 (the 403 itself is documented in the API contract).&#xa;UC1 has no written exception flows, so no further error slots are required (check-6 obligation set = written flows of UC3/UC4)." vertex="1">
-          <mxGeometry height="200" width="340" x="900" y="40" as="geometry" />
+          <mxGeometry height="200" width="340" x="80" y="530" as="geometry" />
         </mxCell>
         <mxCell id="17" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="Wireframe kit legend&#xa;light-gray box = input / dropdown&#xa;dark-gray box = button&#xa;dashed box = message / state area&#xa;container + shaded row = table with header&#xa;Grayscale only: no colors, fonts, logos (not graded)." vertex="1">
-          <mxGeometry height="120" width="340" x="900" y="260" as="geometry" />
+          <mxGeometry height="120" width="340" x="470" y="530" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
@@ -109,7 +109,7 @@
           <mxGeometry height="32" width="780" x="60" y="540" as="geometry" />
         </mxCell>
         <mxCell id="18" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="M2 annotations&#xa;Screen type: Detail (hosts UC2 suggestion + UC3 assignment).&#xa;Field→column: summary = ticket columns; table = technician.ho_ten and technician_skill.proficiency; workload is COMPUTED at query time (statuses DA_PHAN_CONG / DANG_XU_LY / CHO_LINH_KIEN) and is never stored.&#xa;Reason input → ticket_status_log.note (write path).&#xa;Buttons: [Confirm assignment] = UC3 step 6; [Schedule appointment] = UC4 entry, enabled once an assignment exists.&#xa;Master-data note: technician / technician_skill / issue_category are imported from the case-study dataset; no admin screen in v0.5 (NFR7 insert-only)." vertex="1">
-          <mxGeometry height="210" width="340" x="900" y="40" as="geometry" />
+          <mxGeometry height="210" width="340" x="140" y="620" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
@@ -165,7 +165,7 @@
           <mxGeometry height="32" width="780" x="60" y="502" as="geometry" />
         </mxCell>
         <mxCell id="17" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="M3 annotations&#xa;Screen type: Create/Edit.&#xa;Field→column: loai, ngay_hen, gio_bat_dau, gio_ket_thuc are appointment columns; ticket_id, technician_id, center_id are system-derived from context (NOT entered); trang_thai is set by the confirm action.&#xa;Conflict check excludes the appointment being updated and ignores HOAN_TAT / KHACH_HUY / KHACH_KHONG_DEN.&#xa;Absent by design: location and ghi_chu/note (deferred); KIEM_TRA_TAI_CHO option (deferred; enum kept in DB for historical rows)." vertex="1">
-          <mxGeometry height="190" width="340" x="900" y="40" as="geometry" />
+          <mxGeometry height="190" width="340" x="95" y="580" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
