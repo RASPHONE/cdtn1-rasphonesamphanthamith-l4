@@ -237,7 +237,7 @@ Role permissions:
 
 UC5 and UC6 are specified use cases without an associated FR at v0.5. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
 
-### 6.2 Functional requirement traceability (design-phase extended matrix)
+### 6.2 Functional requirement traceability (Session 5 extended matrix)
 
 Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket detail & technician assignment · **M3** = Appointment create/update (source: `docs/wireframes_l4.drawio`).
 
@@ -266,5 +266,5 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | Version | When | Change | Reason |
 |---|---|---|---|
 | v0.1 | BT1 draft | Initial analysis | — |
-| v0.2 | Phase 1 | Locked scope: Vietnamese status codes, 7 core stories, removed appointment `location`/`note`, external master-data boundary, filtered data subset | Dataset review and scope decisions |
-| v0.3 | Phase 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Design-phase checks (Patch 20) and Phase 4 column lock |
+| v0.2 | Session 3 | Locked scope: Vietnamese status codes, 7 core stories, removed appointment `location`/`note`, external master-data boundary, filtered data subset | Dataset review and scope decisions |
+| v0.3 | Session 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Session 5 arrival & review |
