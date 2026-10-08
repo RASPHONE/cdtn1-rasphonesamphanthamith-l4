@@ -1,5 +1,5 @@
 # Smart CRM – Mekong Mobile · Flow L4: Technician Assignment & Appointment Scheduling
-Repository: `cdtn1-rasphonesamphanthamith-l4` · Track SE · Capstone Topic 1
+Repository: `cdtn1-rasphonesamphanthamith-l4` · Track SE · Specialized Graduation Topic I
 Design documents: `docs/` (BT1).
 
 ## 1. Goal
