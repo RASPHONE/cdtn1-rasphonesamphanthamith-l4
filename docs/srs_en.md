@@ -2,7 +2,7 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.3
+- **Version:** v0.4
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
 
@@ -268,3 +268,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.1 | BT1 draft | Initial analysis | — |
 | v0.2 | Session 3 | Locked scope: Vietnamese status codes, 7 core stories, removed appointment `location`/`note`, external master-data boundary, filtered data subset | Dataset review and scope decisions |
 | v0.3 | Session 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Session 5 arrival & review |
+| v0.4 | Post-BT1 (Session 8) | NFR4 threshold made measurable (100% mask format) per feedback TD-01 | BT1 feedback |

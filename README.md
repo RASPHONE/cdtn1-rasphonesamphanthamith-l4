@@ -84,7 +84,7 @@ Prints the number of PASSed tests. Status: no tests at the BT1 milestone;
 
 | Date | Change vs BT1 | Reason | Reference |
 |---|---|---|---|
-| — | No deviations from BT1 yet | — | — |
+| 2026-10-15 | NFR4 threshold made measurable (100% mask format `090****567`); API Contract and directory tree kept repo-only, Report retained at 29 pages (reduced from 35 via TD-02 API-contract removal + TOC resize); 6–9 page guideline not met — deviation accepted with documented reasons | BT1 feedback TD-01, TD-02, TD-03 | `docs/thay-doi-thiet-ke_en.md` |
 
-Internal SRS change log (v0.1 → v0.2 → v0.3, pre-submission): see
-`docs/srs_en.md` → Document control.
+Internal SRS change log (v0.1 → v0.4, including pre-submission iterations):
+see `docs/srs_en.md` → Document control.
