@@ -186,7 +186,7 @@ Role permissions:
 | NFR1 | Performance | The unassigned ticket list shall render in under 2 seconds for a service center with up to 500 open tickets. | 2s / 500 tickets |
 | NFR2 | Performance | The technician suggestion panel shall return results in under 1 second for a service center with up to 40 active technicians and up to 6 issue categories. | 1s / 40 technicians |
 | NFR3 | Security | A center manager shall only access tickets, technicians, and appointments of their own service center; cross-center requests shall return HTTP 403. | 403 on cross-center |
-| NFR4 | Security | Customer phone numbers shall be displayed in masked format for all roles except Center Manager and Board of Directors. | Mask format enforced |
+| NFR4 | Security | Customer phone numbers shall be masked for all roles except Center Manager and Board of Directors (QT-15). | **100%** of phone numbers in API responses for non-manager roles match the exact format `090****567` (3 leading digits + 4 asterisks + 3 trailing digits). |
 | NFR5 | Reliability | Assignment and appointment saving shall commit fully or roll back fully within 3 seconds when a failure occurs. | 3s / atomic |
 | NFR6 | Usability | A new center manager shall complete a full technician assignment in under 3 minutes without asking a colleague. | 3 min |
 | NFR7 | Maintainability | Adding a new issue category shall require only inserting one row into `issue_category`, with zero code changes. | 0 code changes |
