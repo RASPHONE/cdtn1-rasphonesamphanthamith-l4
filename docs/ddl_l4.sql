@@ -3,7 +3,7 @@
 -- External master data (customer, device/product, service_center, employee)
 -- is intentionally NOT modeled in L4 (SRS v0.2 §5 design notes).
 
-CREATE TABLE issue_category (                      -- FR2, FR9, NFR7
+CREATE TABLE IF NOT EXISTS issue_category (                      -- FR2, FR9, NFR7
     category_id      SERIAL      PRIMARY KEY,
     category_name    VARCHAR(60) NOT NULL UNIQUE,  -- business key UNIQUE, not PK
     default_priority VARCHAR(10) NOT NULL
@@ -13,7 +13,7 @@ CREATE TABLE issue_category (                      -- FR2, FR9, NFR7
     -- adding a category = one INSERT, zero code changes.
 );
 
-CREATE TABLE technician (                          -- FR2, FR8
+CREATE TABLE IF NOT EXISTS technician (                          -- FR2, FR8
     technician_id   BIGSERIAL    PRIMARY KEY,
     technician_code VARCHAR(20)  NOT NULL UNIQUE,
     ho_ten          VARCHAR(120) NOT NULL,         -- display name (technicians.csv)
@@ -23,14 +23,14 @@ CREATE TABLE technician (                          -- FR2, FR8
     is_active       BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE technician_skill (                    -- FR2, FR4 (QT-08)
+CREATE TABLE IF NOT EXISTS technician_skill (                    -- FR2, FR4 (QT-08)
     technician_id BIGINT   NOT NULL REFERENCES technician(technician_id),
     category_id   INT      NOT NULL REFERENCES issue_category(category_id),
     proficiency   SMALLINT NOT NULL CHECK (proficiency BETWEEN 1 AND 5),  -- CON-04
     PRIMARY KEY (technician_id, category_id)
 );
 
-CREATE TABLE ticket (                              -- FR1, FR3, FR5, FR8, FR9
+CREATE TABLE IF NOT EXISTS ticket (                              -- FR1, FR3, FR5, FR8, FR9
     ticket_id      BIGSERIAL    PRIMARY KEY,
     ticket_code    VARCHAR(20)  NOT NULL UNIQUE,   -- e.g. BH-000123/2026
     center_id      BIGINT       NOT NULL,          -- QT-14 scoping column
@@ -54,7 +54,7 @@ CREATE TABLE ticket (                              -- FR1, FR3, FR5, FR8, FR9
         CHECK (closed_at IS NULL OR closed_at >= received_at)
 );
 
-CREATE TABLE appointment (                         -- FR6, FR7, FR11
+CREATE TABLE IF NOT EXISTS appointment (                         -- FR6, FR7, FR11
     appointment_id BIGSERIAL   PRIMARY KEY,
     ticket_id      BIGINT      NOT NULL REFERENCES ticket(ticket_id),
     technician_id  BIGINT      NOT NULL REFERENCES technician(technician_id),        -- scheduling-time snapshot (QT-07-safe)
@@ -74,7 +74,7 @@ CREATE TABLE appointment (                         -- FR6, FR7, FR11
     -- active, non-deleted appointments only. No location/note columns in BT2 prototype.
 );
 
-CREATE TABLE ticket_status_log (                   -- FR5, QT-06
+CREATE TABLE IF NOT EXISTS ticket_status_log (                   -- FR5, QT-06
     log_id      BIGSERIAL    PRIMARY KEY,
     ticket_id   BIGINT       NOT NULL REFERENCES ticket(ticket_id),
     from_status VARCHAR(20)  NULL
@@ -89,15 +89,15 @@ CREATE TABLE ticket_status_log (                   -- FR5, QT-06
 );
 
 -- Indexes: each tied to an NFR/FR
-CREATE INDEX idx_ticket_unassigned ON ticket (center_id, due_date)
+CREATE INDEX IF NOT EXISTS idx_ticket_unassigned ON ticket (center_id, due_date)
     WHERE status = 'MOI' AND technician_id IS NULL AND is_deleted = FALSE;  -- NFR1 / FR1
-CREATE INDEX idx_ticket_technician_status ON ticket (technician_id, status);        -- FR8 workload
-CREATE INDEX idx_technician_center ON technician (center_id)
+CREATE INDEX IF NOT EXISTS idx_ticket_technician_status ON ticket (technician_id, status);        -- FR8 workload
+CREATE INDEX IF NOT EXISTS idx_technician_center ON technician (center_id)
     WHERE is_active = TRUE;                                                          -- FR2 same-center
-CREATE INDEX idx_skill_lookup ON technician_skill (category_id, proficiency)
+CREATE INDEX IF NOT EXISTS idx_skill_lookup ON technician_skill (category_id, proficiency)
     INCLUDE (technician_id);                                                         -- NFR2 / FR2
-CREATE INDEX idx_appointment_active_overlap
+CREATE INDEX IF NOT EXISTS idx_appointment_active_overlap
     ON appointment (technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc)
     WHERE is_deleted = FALSE
         AND trang_thai IN ('DA_DAT', 'DA_XAC_NHAN');                                   -- FR7 / US6 / US13
-CREATE INDEX idx_log_ticket ON ticket_status_log (ticket_id, changed_at);           -- QT-06 audit
+CREATE INDEX IF NOT EXISTS idx_log_ticket ON ticket_status_log (ticket_id, changed_at);           -- QT-06 audit
