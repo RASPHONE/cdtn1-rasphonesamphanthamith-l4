@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from src.errors import AppError, HTTP_BY_CODE
 from src.routes.health import router as health_router
 from src.routes.appointments import router as appointments_router
+from src.routes.technician_skills import router as technician_skills_router
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -15,6 +16,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(appointments_router)
+    app.include_router(technician_skills_router)
 
     @app.exception_handler(AppError)
     async def app_error_handler(request, exc: AppError):
