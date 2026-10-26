@@ -18,6 +18,10 @@ HTTP_BY_CODE = {
     "bad_request": 400,
     "invalid_pagination": 400,
 
+    # 401 - unauthorized
+    "unauthorized": 401,
+    "invalid_credentials": 401,
+
     # 403 - center scoping / QT-14
     "cross_center_access": 403,
 

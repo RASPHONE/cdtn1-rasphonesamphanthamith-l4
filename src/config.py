@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     port: int = 8000
 
-    jwt_secret: str = ""
+    jwt_secret: str = "dev_secret_change_me"
     access_token_expire_minutes: int = 60
 
     @property
