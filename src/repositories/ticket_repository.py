@@ -1,38 +1,133 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.db import get_connection
 
 
 class PostgresTicketRepository:
-    """
-    Minimal ticket repository needed for appointment creation.
-    Later will extend this for assignment endpoints.
+    BASE_SELECT = """
+    SELECT
+        t.ticket_id,
+        t.ticket_code,
+        t.center_id,
+        t.customer_name,
+        t.customer_phone,
+        t.serial_no,
+        t.issue_desc,
+        t.category_id,
+        ic.category_name,
+        t.priority,
+        t.status,
+        t.technician_id,
+        t.received_at,
+        t.due_date,
+        t.closed_at,
+        t.is_warranty,
+        t.is_deleted
+    FROM ticket t
+    JOIN issue_category ic
+      ON ic.category_id = t.category_id
     """
 
     def get_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
-        sql = """
-        SELECT
-            ticket_id,
-            ticket_code,
-            center_id,
-            customer_name,
-            customer_phone,
-            serial_no,
-            issue_desc,
-            category_id,
-            priority,
-            status,
-            technician_id,
-            received_at,
-            due_date,
-            closed_at,
-            is_warranty,
-            is_deleted
-        FROM ticket
-        WHERE ticket_id = %s
+        sql = f"""
+        {self.BASE_SELECT}
+        WHERE t.ticket_id = %s
         """
 
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, (ticket_id,))
                 return cur.fetchone()
+
+    def list_unassigned(
+        self,
+        *,
+        center_id: int,
+        category_id: Optional[int] = None,
+        priority: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        where = [
+            "t.center_id = %s",
+            "t.is_deleted = FALSE",
+            "t.is_warranty = TRUE",
+            "t.status = 'MOI'",
+            "t.technician_id IS NULL",
+        ]
+
+        params: List[Any] = [center_id]
+
+        if category_id is not None:
+            where.append("t.category_id = %s")
+            params.append(category_id)
+
+        if priority is not None:
+            where.append("t.priority = %s")
+            params.append(priority)
+
+        where_sql = " AND ".join(where)
+
+        count_sql = f"""
+        SELECT COUNT(*) AS total
+        FROM ticket t
+        WHERE {where_sql}
+        """
+
+        data_sql = f"""
+        {self.BASE_SELECT}
+        WHERE {where_sql}
+        ORDER BY t.due_date ASC
+        LIMIT %s OFFSET %s
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(count_sql, params)
+                total = cur.fetchone()["total"]
+
+                cur.execute(
+                    data_sql,
+                    params + [page_size, (page - 1) * page_size],
+                )
+                items = cur.fetchall()
+
+        return items, total
+
+    def assign_technician(
+        self,
+        ticket_id: int,
+        technician_id: int,
+        new_status: str,
+    ) -> Optional[Dict[str, Any]]:
+        sql = """
+        UPDATE ticket
+        SET technician_id = %s,
+            status = %s
+        WHERE ticket_id = %s
+          AND is_deleted = FALSE
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (technician_id, new_status, ticket_id))
+
+        return self.get_by_id(ticket_id)
+
+    def update_technician(
+        self,
+        ticket_id: int,
+        technician_id: int,
+    ) -> Optional[Dict[str, Any]]:
+        sql = """
+        UPDATE ticket
+        SET technician_id = %s
+        WHERE ticket_id = %s
+          AND is_deleted = FALSE
+        """
+
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (technician_id, ticket_id))
+
+        return self.get_by_id(ticket_id)
