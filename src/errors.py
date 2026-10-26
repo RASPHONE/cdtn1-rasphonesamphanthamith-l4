@@ -40,6 +40,7 @@ HTTP_BY_CODE = {
     "appointment_in_past": 422,
     "invalid_time_range": 422,
     "appointment_completed_cannot_delete": 422,
+    "appointment_completed_cannot_update": 422,
     "proficiency_out_of_range": 422,
     "category_inactive": 422,
     "ticket_not_found_or_unassigned": 422,
