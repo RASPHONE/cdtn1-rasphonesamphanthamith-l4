@@ -54,22 +54,24 @@ CREATE TABLE ticket (                              -- FR1, FR3, FR5, FR8, FR9
         CHECK (closed_at IS NULL OR closed_at >= received_at)
 );
 
-CREATE TABLE appointment (                         -- FR6, FR7
+CREATE TABLE appointment (                         -- FR6, FR7, FR11
     appointment_id BIGSERIAL   PRIMARY KEY,
     ticket_id      BIGINT      NOT NULL REFERENCES ticket(ticket_id),
     technician_id  BIGINT      NOT NULL REFERENCES technician(technician_id),        -- scheduling-time snapshot (QT-07-safe)
     center_id      BIGINT      NOT NULL,          -- scheduling-time snapshot
     loai           VARCHAR(20) NOT NULL
-                   CHECK (loai IN ('GIAO_MAY','NHAN_MAY','KIEM_TRA_TAI_CHO')),        -- CON-02; v0.5 UI creates only first two
+                   CHECK (loai IN ('GIAO_MAY','NHAN_MAY','KIEM_TRA_TAI_CHO')),        -- CON-02; BT2 UI creates only first two
     trang_thai     VARCHAR(20) NOT NULL
                    CHECK (trang_thai IN ('DA_DAT','DA_XAC_NHAN','HOAN_TAT',
                                          'KHACH_HUY','KHACH_KHONG_DEN')),             -- CON-03
     ngay_hen       DATE        NOT NULL,
     gio_bat_dau    TIME        NOT NULL,
     gio_ket_thuc   TIME        NOT NULL,
+    is_deleted     BOOLEAN     NOT NULL DEFAULT FALSE,                              -- TD-05 soft delete
+
     CONSTRAINT chk_appointment_time CHECK (gio_ket_thuc > gio_bat_dau)                -- CON-01
     -- FR7: overlap is NOT a DB constraint; service-layer blocking check over
-    -- active statuses only (SRS §5 note 1). No location/note columns in v0.5.
+    -- active, non-deleted appointments only. No location/note columns in BT2 prototype.
 );
 
 CREATE TABLE ticket_status_log (                   -- FR5, QT-06
@@ -94,6 +96,8 @@ CREATE INDEX idx_technician_center ON technician (center_id)
     WHERE is_active = TRUE;                                                          -- FR2 same-center
 CREATE INDEX idx_skill_lookup ON technician_skill (category_id, proficiency)
     INCLUDE (technician_id);                                                         -- NFR2 / FR2
-CREATE INDEX idx_appointment_overlap
-    ON appointment (technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc);             -- FR7 / US6
+CREATE INDEX idx_appointment_active_overlap
+    ON appointment (technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc)
+    WHERE is_deleted = FALSE
+        AND trang_thai IN ('DA_DAT', 'DA_XAC_NHAN');                                   -- FR7 / US6 / US13
 CREATE INDEX idx_log_ticket ON ticket_status_log (ticket_id, changed_at);           -- QT-06 audit

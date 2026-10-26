@@ -33,3 +33,30 @@ of this file with the next TD-xx codes.*
 - **Decision:** KEEP this file as the authoritative detailed log; README Section 8 only points to it.
 - **Reason:** Session 8 mandates the evidence live in `docs/thay-doi-thiet-ke.md` with TD-xx codes; to avoid two parallel "single sources of truth", README Section 8 becomes a summary table with a link to this file.
 - **Impact:** README Section 8 gains summary rows and a pointer to `docs/thay-doi-thiet-ke_en.md`; no other content changes.
+
+## BT2 implementation changes
+
+### TD-04 Choose full-CRUD entities for BT2
+- **Feedback/Reason:** BT2 rubric item [SE] S1 requires at least two entities with full CRUD.
+- **Decision:** Implement full CRUD for `appointment` and `technician_skill`.
+- **Impact:** Adds appointment read/list/detail and soft-delete endpoints; adds technician skill CRUD endpoints, service/repository classes, tests, and traceability updates. `ticket` remains seeded sample data from L2 and is not expanded into full ticket CRUD.
+
+### TD-05 Appointment soft delete
+- **Feedback/Reason:** BT2 requires a Delete operation for appointment, but appointment history should remain traceable.
+- **Decision:** Add `appointment.is_deleted BOOLEAN NOT NULL DEFAULT FALSE`. The DELETE endpoint sets `is_deleted = TRUE` instead of physically removing the row. Default appointment lists and conflict checks exclude soft-deleted appointments.
+- **Impact:** ERD, DDL, migration, API contract, appointment repository/service, tests.
+
+### TD-06 Technician skill CRUD
+- **Feedback/Reason:** A second full-CRUD entity is required. `technician_skill` directly supports QT-08, which requires proficiency ≥ 3 for qualified technicians.
+- **Decision:** Implement CRUD endpoints under `/api/technicians/{technician_id}/skills`. Delete removes the skill row because technician skill is configuration data supporting eligibility and is not protected by QT-13.
+- **Impact:** API contract, SRS traceability, technician skill repository/service, tests.
+
+### TD-07 Minimal demo authentication
+- **Feedback/Reason:** BT2 extension requires basic login, and QT-14 requires center scoping.
+- **Decision:** Implement minimal demo authentication for the prototype. The token carries `role` and `center_id`. This is not production authentication.
+- **Impact:** Adds auth endpoint or auth middleware later, README demo credentials, and center-scoped access control in services.
+
+### TD-08 Normalize tag/version references
+- **Feedback/Reason:** Official BT2 tag is `v0.2`. Previous references to `v0.5` were mistaken or should refer to the BT1 baseline.
+- **Decision:** BT1 baseline references use `v0.1`. BT2 submission tag uses `v0.2`. Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
+- **Impact:** README, SRS, API contract, and other docs only. No business logic changes.

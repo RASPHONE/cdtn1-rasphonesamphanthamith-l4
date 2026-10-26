@@ -108,7 +108,7 @@
         <mxCell id="17" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=13;" value="Validation / rollback area (UC3-7a ineligible technician rejected; UC3-8a save failed → full rollback, retry, entered data kept — NFR5)" vertex="1">
           <mxGeometry height="32" width="780" x="60" y="540" as="geometry" />
         </mxCell>
-        <mxCell id="18" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="M2 annotations&#xa;Screen type: Detail (hosts UC2 suggestion + UC3 assignment).&#xa;Field→column: summary = ticket columns; table = technician.ho_ten and technician_skill.proficiency; workload is COMPUTED at query time (statuses DA_PHAN_CONG / DANG_XU_LY / CHO_LINH_KIEN) and is never stored.&#xa;Reason input → ticket_status_log.note (write path).&#xa;Buttons: [Confirm assignment] = UC3 step 6; [Schedule appointment] = UC4 entry, enabled once an assignment exists.&#xa;Master-data note: technician / technician_skill / issue_category are imported from the case-study dataset; no admin screen in v0.5 (NFR7 insert-only)." vertex="1">
+        <mxCell id="18" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;fontSize=12;fillColor=#FFF9E6;strokeColor=#B8860B;" value="M2 annotations&#xa;Screen type: Detail (hosts UC2 suggestion + UC3 assignment).&#xa;Field→column: summary = ticket columns; table = technician.ho_ten and technician_skill.proficiency; workload is COMPUTED at query time (statuses DA_PHAN_CONG / DANG_XU_LY / CHO_LINH_KIEN) and is never stored.&#xa;Reason input → ticket_status_log.note (write path).&#xa;Buttons: [Confirm assignment] = UC3 step 6; [Schedule appointment] = UC4 entry, enabled once an assignment exists.&#xa;Master-data note: technician / technician_skill / issue_category are imported from the case-study dataset; no admin screen in v0.2 (NFR7 insert-only)." vertex="1">
           <mxGeometry height="210" width="340" x="140" y="620" as="geometry" />
         </mxCell>
       </root>
@@ -128,7 +128,7 @@
         <mxCell id="4" parent="1" style="text;html=1;align=left;fontSize=15;fontStyle=1;" value="Appointment type (appointment.loai) *" vertex="1">
           <mxGeometry height="18" width="260" x="60" y="144" as="geometry" />
         </mxCell>
-        <mxCell id="5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=11;" value="▾ GIAO_MAY (Handover) / NHAN_MAY (Receipt) — v0.5 offers only these two; KIEM_TRA_TAI_CHO deferred" vertex="1">
+        <mxCell id="5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=11;" value="▾ GIAO_MAY (Handover) / NHAN_MAY (Receipt) — v0.2 offers only these two; KIEM_TRA_TAI_CHO deferred" vertex="1">
           <mxGeometry height="30" width="560" x="60" y="174" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="text;html=1;align=left;fontSize=15;fontStyle=1;" value="ngay_hen *" vertex="1">
@@ -149,13 +149,13 @@
         <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;align=left;spacingLeft=6;fontSize=15;" value="[time picker]" vertex="1">
           <mxGeometry height="30" width="140" x="400" y="242" as="geometry" />
         </mxCell>
-        <mxCell id="12" parent="1" style="text;html=1;align=left;fontSize=14;" value="* required (US5 AC3). No location and no note fields in v0.5 (deferred). CON-01: gio_ket_thuc &amp;gt; gio_bat_dau." vertex="1">
+        <mxCell id="12" parent="1" style="text;html=1;align=left;fontSize=14;" value="* required (US5 AC3). No location and no note fields in v0.2 (deferred). CON-01: gio_ket_thuc &amp;gt; gio_bat_dau." vertex="1">
           <mxGeometry height="18" width="780" x="60" y="282" as="geometry" />
         </mxCell>
         <mxCell id="13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DDDDDD;strokeColor=#333333;fontSize=13;fontStyle=1;" value="[Save &amp;amp; confirm appointment → trang_thai = DA_XAC_NHAN]" vertex="1">
           <mxGeometry height="32" width="410" x="60" y="318" as="geometry" />
         </mxCell>
-        <mxCell id="14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=12;fontStyle=1;" value="CONFLICT WARNING (UC4-5a / FR7 / US6): technician already has an active appointment (DA_DAT / DA_XAC_NHAN) 09:00–10:00 on this ngay_hen. Save BLOCKED until the time is changed or the operation is cancelled. No override in v0.5." vertex="1">
+        <mxCell id="14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=12;fontStyle=1;" value="CONFLICT WARNING (UC4-5a / FR7 / US6): technician already has an active appointment (DA_DAT / DA_XAC_NHAN) 09:00–10:00 on this ngay_hen. Save BLOCKED until the time is changed or the operation is cancelled. No override in v0.2." vertex="1">
           <mxGeometry height="46" width="780" x="60" y="378" as="geometry" />
         </mxCell>
         <mxCell id="15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#333333;dashed=1;align=left;spacingLeft=6;fontSize=13;" value="Field validation area (UC4-4a missing required fields → highlight + keep entered data; UC4-4b Appointment time must be in the future.; UC4-4c End time must be after start time.)" vertex="1">

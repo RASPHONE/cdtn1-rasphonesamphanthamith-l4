@@ -41,25 +41,25 @@
 
 1. The manager opens the appointment form for an assigned ticket.
 2. The system displays the ticket summary and the assigned technician.
-3. The manager selects `loai` (`GIAO_MAY` or `NHAN_MAY` in v0.5) and enters `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`. (No location or note field in v0.5.)
-4. The system validates: required fields present; (`ngay_hen` + `gio_bat_dau`) is in the future; `gio_ket_thuc > gio_bat_dau` (CON-01); `loai` allowed for creation in v0.5 (CON-02).
+3. The manager selects `loai` (`GIAO_MAY` or `NHAN_MAY` in v0.2) and enters `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`. (No location or note field in v0.2.)
+4. The system validates: required fields present; (`ngay_hen` + `gio_bat_dau`) is in the future; `gio_ket_thuc > gio_bat_dau` (CON-01); `loai` allowed for creation in v0.2 (CON-02).
 5. The system checks overlap against existing appointments of the same technician on the same `ngay_hen` with `trang_thai IN ('DA_DAT','DA_XAC_NHAN')`, excluding the appointment being updated.
 6. If no overlap, the system saves the appointment linked to the ticket, technician, and center with `trang_thai = DA_XAC_NHAN` and displays confirmation.
 
 **Exception flows (numbered by step)**
 
-- **3a.** Manager (or API client) requests `KIEM_TRA_TAI_CHO` → system rejects creation in v0.5; the value remains in the enum only for historical data compatibility.
+- **3a.** Manager (or API client) requests `KIEM_TRA_TAI_CHO` → system rejects creation in v0.2; the value remains in the enum only for historical data compatibility.
 - **4a.** A required field (`ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`, `loai`) is missing → system rejects, highlights missing fields, keeps entered data.
 - **4b.** (`ngay_hen` + `gio_bat_dau`) is in the past → system rejects with "Appointment time must be in the future."
 - **4c.** `gio_ket_thuc ≤ gio_bat_dau` → system rejects with "End time must be after start time."
-- **5a.** Overlap with an active appointment of the same technician on the same `ngay_hen` → system warns with the conflicting appointment details and **blocks saving** until the manager changes the time or cancels (FR7, US6). No override in v0.5.
+- **5a.** Overlap with an active appointment of the same technician on the same `ngay_hen` → system warns with the conflicting appointment details and **blocks saving** until the manager changes the time or cancels (FR7, US6). No override in v0.2.
 - **6a.** Save fails → full rollback (NFR5); entered data kept; retry allowed; no duplicate appointment row.
 
 **Exception → AC → future test case mapping (for BT3)**
 
 | Exception | SRS acceptance criterion | Future TC source |
 |---|---|---|
-| 3a | US5 AC1 (type restricted) | TC: reject on-site type in v0.5 |
+| 3a | US5 AC1 (type restricted) | TC: reject on-site type in v0.2 |
 | 4a | US5 AC3 | TC: missing required fields |
 | 4b | US5 AC2 | TC: past appointment rejected |
 | 4c | US5 AC4 | TC: end before start rejected |

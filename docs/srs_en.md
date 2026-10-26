@@ -2,7 +2,8 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.4
+- **Version:** v0.4.1
+- **BT2 target tag:** v0.2
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
 
@@ -25,15 +26,15 @@ Manage technician assignment and appointment scheduling for warranty tickets: th
 
 ### 1.3 Out of scope and intentionally deferred
 
-The following capabilities are explicitly excluded from v0.5:
+The following capabilities are explicitly excluded from v0.2:
 
 1. **Customer-facing portal.** Customers do not log in, confirm, reschedule, or receive system notifications. The center manager acts on the customer's behalf.
-2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in v0.5.
+2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in v0.2.
 3. **Technician self-service UI.** The Technician actor is specified but deferred to v1.1.
 4. **Reporting and analytics.** Dashboards belong to flows L6/L10, not L4.
 5. **Authentication provider.** Login is treated as infrastructure, not a business flow.
-6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but v0.5 only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
-7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.5. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
+6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but v0.2 only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
+7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.2. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 
 ### 1.4 Terminology
 
@@ -61,8 +62,10 @@ This table is the single source of truth for diagrams, wireframes, DDL, and API 
 | Appointment date | Ngày hẹn | `appointment.ngay_hen` | Date of the appointment |
 | Start time | Giờ bắt đầu | `appointment.gio_bat_dau` | Appointment start time |
 | End time | Giờ kết thúc | `appointment.gio_ket_thuc` | Appointment end time |
-| Appointment type | Loại lịch hẹn | `appointment.loai` | `GIAO_MAY`, `NHAN_MAY`, `KIEM_TRA_TAI_CHO`; v0.5 UI only creates `GIAO_MAY` or `NHAN_MAY` |
+| Appointment type | Loại lịch hẹn | `appointment.loai` | `GIAO_MAY`, `NHAN_MAY`, `KIEM_TRA_TAI_CHO`; v0.2 UI only creates `GIAO_MAY` or `NHAN_MAY` |
 | Appointment status | Trạng thái lịch hẹn | `appointment.trang_thai` | `DA_DAT`, `DA_XAC_NHAN`, `HOAN_TAT`, `KHACH_HUY`, `KHACH_KHONG_DEN` |
+| Soft-deleted appointment | Lịch hẹn đã xóa mềm | `appointment.is_deleted` | Appointment row preserved but marked deleted; excluded from default lists and conflict checks |
+| Technician skill maintenance | Quản lý tay nghề kỹ thuật viên | `technician_skill` CRUD | Create, read, update, and delete proficiency records used for QT-08 eligibility |
 
 ### 1.5 Data source and working subset
 
@@ -85,10 +88,10 @@ The estimated **~40,200 records** refer to a filtered L4 working subset, not the
 
 Only L4-relevant roles are listed.
 
-| Role | Type | Status in v0.5 | What they can do | What they cannot do |
+| Role | Type | Status in v0.2 | What they can do | What they cannot do |
 |---|---|---|---|---|
 | Center Manager | Primary actor | Implemented | View unassigned tickets, view qualified technicians, assign/reassign, create/update/confirm appointments | Cannot bypass one-technician rule or eligibility rule |
-| Technician | Primary actor | Specified, deferred to v1.1 | In specification: view own assigned tickets and appointment times | No system access in v0.5 |
+| Technician | Primary actor | Specified, deferred to v1.1 | In specification: view own assigned tickets and appointment times | No system access in v0.2 |
 | Customer | Stakeholder only | Not an actor | Party to the appointment agreement; brings or receives the device | Does not log in, confirm, reschedule, or receive system notifications |
 
 Role permissions:
@@ -113,12 +116,14 @@ Role permissions:
 | FR3 | The system shall assign a warranty ticket to at most one technician at any point in time. | QT-07 | MUST |
 | FR4 | The system shall reject any assignment where the selected technician does not satisfy FR2. | QT-08 | MUST |
 | FR5 | The system shall require and store a reason whenever a ticket's assigned technician is changed. | QT-07 | MUST |
-| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.5. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.5 UI. | — | MUST |
+| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.2. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.2 UI. | — | MUST |
 | FR7 | The system shall detect and block saving when a new or updated appointment overlaps in time with an active appointment of the same technician on the same `ngay_hen`. Active statuses are `DA_DAT` and `DA_XAC_NHAN`. | — | MUST |
 | FR8 | The system shall display each qualified technician's current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | — | SHOULD |
 | FR9 | The system shall filter the unassigned ticket list by issue category and priority. | — | SHOULD |
+| FR10 | The system shall allow center managers to maintain technician_skill records for technicians in their own center: list, read, create, update proficiency, and delete. Proficiency must remain between 1 and 5. Duplicate `(technician_id, category_id)` values must be rejected. | QT-08, QT-14, BT2 S1 | SHOULD |
+| FR11 | The system shall allow center managers to read appointment details/lists for their own center and soft-delete active appointments by setting `appointment.is_deleted = true`. Soft-deleted appointments are excluded from default appointment lists and conflict checks. | BT2 S1 | SHOULD |
 
-### 3.2 Core User Stories for v0.5
+### 3.2 User Stories implemented or supported in BT2
 
 **US1 (MUST).** As a center manager, I want to see all unassigned warranty tickets for my service center sorted by due date, so that I can start assigning before tickets are forgotten.
 
@@ -134,11 +139,15 @@ Role permissions:
 
 **US8 (SHOULD).** As a center manager, I want to filter unassigned warranty tickets by issue category and priority, so that I can batch assignments by skill area.
 
+**US12 (SHOULD).** As a center manager, I want to maintain technician skill records for technicians in my center so that qualified-technician suggestions reflect current proficiency.
+
+**US13 (SHOULD).** As a center manager, I want to soft-delete erroneous active appointments so that they no longer affect scheduling while the record remains for traceability.
+
 ### 3.3 Deferred and excluded User Stories
 
 | US | Story | Status | Note |
 |---|---|---|---|
-| US7 | Technician views own assigned tickets | Deferred to v1.1 | Technician-facing UI is not implemented in v0.5 |
+| US7 | Technician views own assigned tickets | Deferred to v1.1 | Technician-facing UI is not implemented in v0.2 |
 | US9 | View assignment history | Deferred / COULD | Possible future audit screen based on `ticket_status_log` |
 | US10 | Record appointment cancellation or no-show | Deferred / COULD | Would use `KHACH_HUY` and `KHACH_KHONG_DEN` |
 | US11 | Customer views/confirms/reschedules appointment online | WON'T | Customer-facing portal is intentionally excluded |
@@ -177,6 +186,22 @@ Role permissions:
 - **AC3.** GIVEN the manager updates an existing appointment to a time that overlaps another active appointment of the same technician on the same `ngay_hen`, WHEN the manager saves, THEN the system warns and blocks the update.
 - **AC4.** GIVEN the overlapping appointment has `trang_thai = HOAN_TAT`, `KHACH_HUY`, or `KHACH_KHONG_DEN`, WHEN the manager saves, THEN the system saves without a conflict warning.
 
+### 3.5 Acceptance Criteria for BT2 CRUD Support Stories
+
+#### US12 — Technician skill maintenance
+
+- **AC1.** GIVEN an active technician and an active issue category, WHEN the manager creates a skill with proficiency 4, THEN the system saves the skill and it appears in the technician skill list.
+- **AC2.** GIVEN the technician already has a skill for the same category, WHEN the manager creates the same skill again, THEN the system rejects the request with HTTP 409.
+- **AC3.** GIVEN proficiency is 0 or 6, WHEN the manager creates or updates a skill, THEN the system rejects the request with HTTP 422.
+- **AC4.** GIVEN an existing skill, WHEN the manager deletes it, THEN the skill row is removed and the technician is no longer qualified through that skill.
+
+#### US13 — Appointment soft delete
+
+- **AC1.** GIVEN an active appointment, WHEN the manager requests DELETE, THEN the system sets `appointment.is_deleted = true` and returns success.
+- **AC2.** GIVEN a soft-deleted appointment, WHEN the manager reads the default appointment list, THEN the appointment is not shown.
+- **AC3.** GIVEN a soft-deleted appointment, WHEN the manager creates another appointment at the same time for the same technician, THEN the soft-deleted appointment does not cause a conflict.
+- **AC4.** GIVEN an appointment with `trang_thai = HOAN_TAT`, WHEN the manager requests DELETE, THEN the system rejects the request with HTTP 422.
+
 ---
 
 ## 4. Non-Functional Requirements
@@ -209,14 +234,17 @@ Role permissions:
 | CON-03 | `appointment.trang_thai IN ('DA_DAT', 'DA_XAC_NHAN', 'HOAN_TAT', 'KHACH_HUY', 'KHACH_KHONG_DEN')` | Structural | Database CHECK |
 | CON-04 | `technician_skill.proficiency BETWEEN 1 AND 5` | Structural | Database CHECK |
 | CON-05 | `ticket.status`, `ticket.priority`, and `ticket.is_warranty` are NOT NULL and use allowed technical values. | Structural | Database NOT NULL / CHECK |
+| CON-06 | `appointment.is_deleted` is a boolean flag used for soft delete. Default value is `FALSE`. | Structural | Database default + service layer |
 
 ### Design notes
 
-1. **Appointment conflict is blocking in v0.5.** Conflict detection is enforced at the service layer. If an active overlap exists, the system blocks saving until the manager changes the time or cancels the operation. No override is allowed in v0.5.
+1. **Appointment conflict is blocking in v0.2.** Conflict detection is enforced at the service layer. If an active overlap exists, the system blocks saving until the manager changes the time or cancels the operation. No override is allowed in v0.2.
 2. **External master data boundary.** Customer, device/product, service center, and employee master data are external to the L4 prototype. The L4 ticket stores snapshot fields needed for assignment and appointment display: `customer_name`, `customer_phone`, and `serial_no`. `center_id` is used for center scoping. `ticket_status_log.changed_by` stores the acting user identity without a foreign key to an employee table.
 3. **Appointment snapshots.** The `appointment` table stores `technician_id` and `center_id` as scheduling-time snapshots. This is justified because reassignment can occur after scheduling, and the appointment event must preserve the technician and center responsible at the time of scheduling.
-4. **No appointment location or note in v0.5.** Handover and receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
+4. **No appointment location or note in v0.2.** Handover and receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 5. **`ticket.category_id` is NOT NULL.** L2 classifies the issue category before L4 consumes the ticket; eligibility (QT-08) cannot be evaluated without it. Unclassified tickets never enter the L4 queue.
+6. **Appointment soft delete.** `appointment.is_deleted` marks an appointment as deleted while preserving the row. Default appointment reads and FR7 conflict checks filter `is_deleted = FALSE`. Completed appointments (`trang_thai = HOAN_TAT`) cannot be soft-deleted in the BT2 prototype.
+7. **Technician skill delete.** Deleting a `technician_skill` row removes the technician’s eligibility for that issue category. This table is configuration/support data for QT-08 and is not covered by QT-13 hard-delete protection.
 
 ---
 
@@ -235,7 +263,7 @@ Role permissions:
 
 **Non-human actors considered:** Time / Scheduler. Ruled out because L4 contains no time-triggered use case — due dates are generated at ticket creation (L2), not at assignment.
 
-UC5 and UC6 are specified use cases without an associated FR at v0.5. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
+UC5 and UC6 are specified use cases without an associated FR at v0.2. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
 
 ### 6.2 Functional requirement traceability (Session 5 extended matrix)
 
@@ -252,6 +280,8 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | FR7 | Warn and block appointment conflict | US6 | UC4 | MUST | appointment | M3 | BT3 |
 | FR8 | Show technician workload count | US3 | UC2 | SHOULD | ticket, technician | M2 | BT3 |
 | FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | BT3 |
+| FR10 | Maintain technician skill records | US12 | UC2 | SHOULD | technician_skill, technician, issue_category | M2 | BT3 |
+| FR11 | Read and soft-delete appointments | US13 | UC4 | SHOULD | appointment | M3 | BT3 |
 
 **Row read:** every FR (none is WON'T) has a User Story, Use Case, data table, and screen. No blank cells.
 
@@ -269,3 +299,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.2 | Session 3 | Locked scope: Vietnamese status codes, 7 core stories, removed appointment `location`/`note`, external master-data boundary, filtered data subset | Dataset review and scope decisions |
 | v0.3 | Session 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Session 5 arrival & review |
 | v0.4 | Post-BT1 (Session 8) | NFR4 threshold made measurable (100% mask format) per feedback TD-01 | BT1 feedback |
+| v0.4.1 | BT2 | Added FR10/FR11 and US12/US13 for BT2 full-CRUD requirement; added appointment soft-delete and technician skill CRUD design notes; normalized BT2 target tag to v0.2. | BT2 [SE] S1 and tag clarification |

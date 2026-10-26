@@ -1,6 +1,6 @@
-# `docs/api_contract_en.md` — API Contract (L4, Track SE, v0.5)
+# `docs/api_contract_en.md` — API Contract (L4, Track SE, BT2 target tag v0.2)
 
-Written before implementation (BT1). Every endpoint traces to a User Story in SRS §6.2.
+Updated for BT2. Every business endpoint traces to a User Story in SRS §6.2.
 Companion artifacts: `docs/srs_en.md` (v0.3), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sql`,
 `docs/wireframes_l4_en.drawio` (M1–M3).
 
@@ -35,8 +35,17 @@ Companion artifacts: `docs/srs_en.md` (v0.3), `docs/erd_l4_en.dbd`, `docs/ddl_l4
 | 5 | POST | `/api/appointments` | US5, US6 | FR6, FR7 | UC4 |
 | 6 | PATCH | `/api/appointments/{appointment_id}` | US5, US6 | FR6, FR7 | UC4 |
 | 7 | GET | `/api/appointments/conflicts` | US6 | FR7 | UC4 |
+| 8 | GET | `/api/appointments` | US5, US13 | FR6, FR7, FR11 | UC4 |
+| 9 | GET | `/api/appointments/{appointment_id}` | US5, US13 | FR6, FR11 | UC4 |
+| 10 | DELETE | `/api/appointments/{appointment_id}` | US13 | FR11 | UC4 |
+| 11 | GET | `/api/technicians/{technician_id}/skills` | US12 | FR10 | UC2 |
+| 12 | GET | `/api/technicians/{technician_id}/skills/{category_id}` | US12 | FR10 | UC2 |
+| 13 | POST | `/api/technicians/{technician_id}/skills` | US12 | FR10 | UC2 |
+| 14 | PATCH | `/api/technicians/{technician_id}/skills/{category_id}` | US12 | FR10 | UC2 |
+| 15 | DELETE | `/api/technicians/{technician_id}/skills/{category_id}` | US12 | FR10 | UC2 |
+| 16 | POST | `/api/auth/login` | infrastructure | QT-14, NFR3 | — |
 
-No surplus endpoints: every row serves at least one User Story in the SRS matrix.
+Endpoints 1–15 serve business User Stories. Endpoint 16 is minimal infrastructure required by BT2 extension and supports center scoping for all protected endpoints.
 
 ## 3. Endpoint details
 
@@ -98,13 +107,13 @@ overlapping interval).
           "ngay_hen": "2026-09-15", "gio_bat_dau": "08:00", "gio_ket_thuc": "10:00" }`
 - 400 `bad_request` (missing/malformed field) · 403 · 404 `ticket_not_found_or_unassigned`
 - 409 `appointment_conflict` — FR7; body includes `conflicts: [ {appointment_id, ngay_hen, gio_bat_dau, gio_ket_thuc, trang_thai} ]`.
-- 422 `appointment_type_deferred` — `KIEM_TRA_TAI_CHO` not creatable in v0.5.
+- 422 `appointment_type_deferred` — `KIEM_TRA_TAI_CHO` not creatable in v0.2.
 - 422 `appointment_in_past` — "Appointment time must be in the future." (US5 AC2)
 - 422 `invalid_time_range` — CON-01 (`gio_ket_thuc > gio_bat_dau`).
 
 ### 3.6 PATCH /api/appointments/{appointment_id}
 Request: optional subset `{ "loai", "ngay_hen", "gio_bat_dau", "gio_ket_thuc", "trang_thai" }`.
-In v0.5 `trang_thai` may only be set to `DA_XAC_NHAN` (confirm); cancellation
+In v0.2 `trang_thai` may only be set to `DA_XAC_NHAN` (confirm); cancellation
 statuses (`KHACH_HUY`, `KHACH_KHONG_DEN`) are deferred with US10.
 Conflict check excludes the appointment being updated.
 - 200 updated object · 409 `appointment_conflict` · 422 (same codes as 3.5)
@@ -118,17 +127,134 @@ in 3.5/3.6 remains authoritative.
 - 200: `{ "conflicts": [ ... ] }` (empty array when none).
 - 400 `bad_request` · 403 `cross_center_access` (technician outside caller center).
 
+### 3.8 GET /api/appointments
+
+Query: `page`, `page_size`, optional `technician_id`, optional `ticket_id`,
+optional `ngay_hen`, optional `trang_thai`, optional `include_deleted`.
+
+Default filter: `include_deleted=false`, so soft-deleted appointments are excluded.
+Server-side center scoping applies from the caller token (QT-14).
+
+- 200:
+```json
+{ "page": 1, "page_size": 20, "total": 12,
+  "items": [ { "appointment_id": 88, "ticket_id": 123, "technician_id": 7,
+               "center_id": 2, "loai": "NHAN_MAY", "trang_thai": "DA_XAC_NHAN",
+               "ngay_hen": "2026-09-15", "gio_bat_dau": "08:00",
+               "gio_ket_thuc": "10:00", "is_deleted": false } ] }
+```
+- 400 `bad_request` — invalid pagination/filter.
+- 403 `cross_center_access` — QT-14.
+
+### 3.9 GET /api/appointments/{appointment_id}
+
+- 200: appointment object.
+- 403 `cross_center_access`.
+- 404 `appointment_not_found` — does not exist or is soft-deleted when `include_deleted=false`.
+
+### 3.10 DELETE /api/appointments/{appointment_id}
+
+Soft delete. Sets `appointment.is_deleted = true`. Does not physically remove the row.
+
+- 200:
+```json
+{ "appointment_id": 88, "is_deleted": true }
+```
+- 403 `cross_center_access`.
+- 404 `appointment_not_found` — already deleted or does not exist.
+- 422 `appointment_completed_cannot_delete` — `trang_thai = HOAN_TAT`.
+
+### 3.11 GET /api/technicians/{technician_id}/skills
+
+Returns the skill list of one technician. Center scoping applies.
+
+- 200:
+```json
+{ "technician_id": 7,
+  "items": [ { "category_id": 1, "category_name": "MAN_HINH", "proficiency": 4 } ] }
+```
+- 403 `cross_center_access`.
+- 404 `technician_not_found`.
+
+### 3.12 GET /api/technicians/{technician_id}/skills/{category_id}
+
+- 200:
+```json
+{ "technician_id": 7, "category_id": 1, "category_name": "MAN_HINH", "proficiency": 4 }
+```
+- 403 `cross_center_access`.
+- 404 `technician_not_found` or `skill_not_found`.
+
+### 3.13 POST /api/technicians/{technician_id}/skills
+
+Request:
+
+```json
+{ "category_id": 1, "proficiency": 4 }
+```
+
+- 201: created skill object.
+- 400 `bad_request` — missing/malformed field.
+- 403 `cross_center_access`.
+- 404 `technician_not_found` or `category_not_found`.
+- 409 `skill_already_exists` — duplicate `(technician_id, category_id)`.
+- 422 `proficiency_out_of_range` — not between 1 and 5.
+- 422 `category_inactive` — issue category is not active.
+
+### 3.14 PATCH /api/technicians/{technician_id}/skills/{category_id}
+
+Request:
+
+```json
+{ "proficiency": 5 }
+```
+
+- 200: updated skill object.
+- 403 `cross_center_access`.
+- 404 `technician_not_found` or `skill_not_found`.
+- 422 `proficiency_out_of_range`.
+
+### 3.15 DELETE /api/technicians/{technician_id}/skills/{category_id}
+
+Removes the skill row.
+
+- 204: deleted.
+- 403 `cross_center_access`.
+- 404 `technician_not_found` or `skill_not_found`.
+
+### 3.16 POST /api/auth/login
+
+Minimal demo authentication for BT2. Not production authentication.
+
+Request:
+
+```json
+{ "username": "manager1", "password": "..." }
+```
+
+- 200:
+```json
+{ "access_token": "...", "token_type": "bearer",
+  "role": "CENTER_MANAGER", "center_id": 1 }
+```
+- 401 `invalid_credentials`.
+
 ## 4. Validation table
 
 | Endpoint | Field | Required | Type | Rule | Error (code) |
 |---|---|---|---|---|---|
 | 3.3 / 3.4 | `technician_id` | yes | int | exists; QT-08 vs ticket | "Technician not qualified for this category/center (QT-08)." (422) |
 | 3.4 | `reason` | yes (reassign) | string 5–255 | non-empty | "Reason is required when changing technician." (422) |
-| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.5 | "On-site check appointments are deferred (v0.5)." (422) |
+| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.2 | "On-site check appointments are deferred (v0.2)." (422) |
 | 3.5 / 3.6 | `ngay_hen` | yes | date | (`ngay_hen` + `gio_bat_dau`) > now | "Appointment time must be in the future." (422) |
 | 3.5 / 3.6 | `gio_bat_dau`, `gio_ket_thuc` | yes | HH:MM | CON-01 end > start | "End time must be after start time." (422) |
 | 3.1 | `category_id`, `priority` | no | int / enum | valid id / `CAO|TRUNG_BINH|THAP` | "Invalid filter value." (400) |
 | 3.1 / 3.7 | `page`, `page_size` | no | int | ≥ 1 / 1–100 | "Invalid pagination parameters." (400) |
+| 3.10 | `appointment_id` | yes | int | exists, not soft-deleted, not completed | "Completed appointment cannot be deleted." (422) |
+| 3.13 | `category_id` | yes | int | active issue category | "Issue category not found or inactive." (404/422) |
+| 3.13 / 3.14 | `proficiency` | yes | int | 1–5 | "Proficiency must be between 1 and 5." (422) |
+| 3.13 | `(technician_id, category_id)` | — | composite | unique | "Skill already exists for this technician/category." (409) |
+| 3.16 | `username`, `password` | yes | string | valid demo user | "Invalid credentials." (401) |
 
 ## 5. Notes
 
@@ -137,4 +263,4 @@ in 3.5/3.6 remains authoritative.
   including exception paths.
 - Concurrency: conflict detection is a service-layer blocking check (SRS §5
   note 1); a simultaneous double-submit is theoretically possible and is
-  accepted in v0.5 (one manager per center).
+  accepted in v0.2 (one manager per center).

@@ -1,4 +1,4 @@
-# `docs/wireframe_mapping_en.md` — Wireframe traceability (L4, v0.5)
+# `docs/wireframe_mapping_en.md` — Wireframe traceability (L4, v0.2)
 
 Source: `docs/wireframes_l4_en.drawio` (3 pages: M1, M2, M3). Grayscale low-fi; PNG exports for the PDF.
 
@@ -13,12 +13,12 @@ Source: `docs/wireframes_l4_en.drawio` (3 pages: M1, M2, M3). Grayscale low-fi; 
 | M2 | technician table | `technician.ho_ten`, `technician_skill.proficiency` |
 | M2 | workload column | computed (NOT stored): count of `ticket` with status DA_PHAN_CONG / DANG_XU_LY / CHO_LINH_KIEN |
 | M2 | reason input | `ticket_status_log.note` (write path) |
-| M3 | type dropdown | `appointment.loai` (v0.5: GIAO_MAY, NHAN_MAY only) |
+| M3 | type dropdown | `appointment.loai` (v0.2: GIAO_MAY, NHAN_MAY only) |
 | M3 | date/time inputs | `appointment.ngay_hen`, `gio_bat_dau`, `gio_ket_thuc` |
 | M3 | read-only summary | `ticket.ticket_code`, `technician.ho_ten`, `appointment.center_id` (system-derived) |
 | M3 | confirm button | sets `appointment.trang_thai = DA_XAC_NHAN` |
 
-NOT NULL coverage: appointment's `ticket_id / technician_id / center_id / trang_thai` are system-generated; `loai / ngay_hen / gio_bat_dau / gio_ket_thuc` are M3 inputs; `ticket_status_log` NOT NULL columns are system-written on M2 confirm. Master data (`issue_category`, `technician`, `technician_skill`) is imported from the case-study dataset — no admin screen in v0.5 (NFR7 insert-only).
+NOT NULL coverage: appointment's `ticket_id / technician_id / center_id / trang_thai` are system-generated; `loai / ngay_hen / gio_bat_dau / gio_ket_thuc` are M3 inputs; `ticket_status_log` NOT NULL columns are system-written on M2 confirm. Master data (`issue_category`, `technician`, `technician_skill`) is imported from the case-study dataset — no admin screen in v0.2 (NFR7 insert-only).
 
 ## 2. Button/action ↔ Use Case
 
@@ -48,4 +48,4 @@ NOT NULL coverage: appointment's `ticket_id / technician_id / center_id / trang_
 
 ## 4. Absent by design
 
-No `location`, no appointment `note/ghi_chu`, no `KIEM_TRA_TAI_CHO` option in v0.5; no technician or customer screens. Each absence traces to a locked scope decision in SRS v0.2 §1.3 / §5 notes.
+No `location`, no appointment `note/ghi_chu`, no `KIEM_TRA_TAI_CHO` option in v0.2; no technician or customer screens. Each absence traces to a locked scope decision in SRS v0.2 §1.3 / §5 notes.

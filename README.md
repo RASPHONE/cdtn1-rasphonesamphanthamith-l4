@@ -11,7 +11,7 @@ A decision-support system for warranty center managers at Mekong Mobile:
   sorted by SLA due date (`due_date`).
 - Prevents double-booking: creating or updating an appointment is blocked when
   it overlaps an active appointment of the same technician.
-Scope stops at the center manager's screens in v0.5: no customer portal
+Scope stops at the center manager's screens in v0.2: no customer portal
 (WON'T), no technician self-service UI (deferred to v1.1).
 Details: `docs/srs_en.md`.
 
@@ -24,7 +24,7 @@ Details: `docs/srs_en.md`.
 
 ## 3. Run instructions (<= 4 steps)
 > **Status:** at the BT1 milestone this repository contains design documents
-> only (`docs/`). The four steps below become runnable from tag `v0.5` (BT2);
+> only (`docs/`). The four steps below become runnable from tag `v0.2` (BT2);
 1. `cp .env.example .env` and fill in the values
 2. `pip install -r requirements.txt`
 3. `python scripts/migrate.py`  # creates schema from `db/schema.sql`, loads `data/sample/`
@@ -56,11 +56,11 @@ Prints the number of PASSed tests. Status: no tests at the BT1 milestone;
 ## 6. Current status
 - [x] Repository initialized, Conventional Commits (Session 2)
 - [x] BT1 — analysis & design (end of Session 6): five components + AI
-      appendix in `docs/`, PDF submitted via LMS
+      appendix in `docs/`, PDF submitted via LMS (baseline tag `v0.1`)
 - [ ] Scaffold of core modules: empty files matching the four-layer
       architecture (before Session 7)
 - [ ] BT2 — assignment & appointment modules runnable locally
-      (Sessions 8–12, tag `v0.5`)
+      (Sessions 8–12, tag `v0.2`)
 - [ ] BT3 — tests & Docker packaging (Sessions 13–16, tag `v1.0`)
 
 ## 7. Sample data & seeds (Reproducibility)
@@ -85,6 +85,7 @@ Prints the number of PASSed tests. Status: no tests at the BT1 milestone;
 | Date | Change vs BT1 | Reason | Reference |
 |---|---|---|---|
 | 2026-10-15 | NFR4 threshold made measurable (100% mask format `090****567`); API Contract and directory tree kept repo-only, Report retained at 29 pages (reduced from 35 via TD-02 API-contract removal + TOC resize); 6–9 page guideline not met — deviation accepted with documented reasons | BT1 feedback TD-01, TD-02, TD-03 | `docs/thay-doi-thiet-ke_en.md` |
+| 2026-10-15 | Normalized tags and added BT2 design changes: appointment soft-delete, technician_skill CRUD, minimal demo auth decision | BT2 | `docs/thay-doi-thiet-ke_en.md` |
 
 Internal SRS change log (v0.1 → v0.4, including pre-submission iterations):
 see `docs/srs_en.md` → Document control.

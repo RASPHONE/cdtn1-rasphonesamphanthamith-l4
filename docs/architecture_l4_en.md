@@ -1,4 +1,4 @@
-# `docs/architecture_l4_en.md` — Architecture decisions (L4, v0.5)
+# `docs/architecture_l4_en.md` — Architecture decisions (L4, v0.2)
 
 Pattern: **Layered (4 layers)** as the frame, **MVC** inside the Presentation layer,
 **Repository** for data access. Diagram: `docs/architecture_l4_en.drawio`.
@@ -24,7 +24,7 @@ Pattern: **Layered (4 layers)** as the frame, **MVC** inside the Presentation la
 
 5. **Because NFR7** requires that adding a new issue category needs **only one INSERT into `issue_category` with zero code changes**, I choose to **drive all eligibility logic from the `issue_category` and `technician_skill` tables** and forbid hard-coded category enums in code; **the trade-off is** that category master data must be administered by direct INSERT until a (deferred, SHOULD) admin screen exists.
 
-6. **Because FR7 combined with NFR6** requires the manager to see an **understandable conflict warning and finish rescheduling within 3 minutes**, I compared two options — (A) a service-layer overlap query over active appointments (`trang_thai IN ('DA_DAT','DA_XAC_NHAN')`) using `idx_appointment_overlap`, versus (B) a PostgreSQL exclusion constraint — and I choose **option A**; **the trade-off is** that option A is not concurrency-proof at the database level (two simultaneous submits could theoretically overlap), which I accept because v0.5 has a single manager per center, whereas option B would be absolute but cannot emit a friendly, status-aware warning.
+6. **Because FR7 combined with NFR6** requires the manager to see an **understandable conflict warning and finish rescheduling within 3 minutes**, I compared two options — (A) a service-layer overlap query over active appointments (`trang_thai IN ('DA_DAT','DA_XAC_NHAN')`) using `idx_appointment_overlap`, versus (B) a PostgreSQL exclusion constraint — and I choose **option A**; **the trade-off is** that option A is not concurrency-proof at the database level (two simultaneous submits could theoretically overlap), which I accept because v0.2 has a single manager per center, whereas option B would be absolute but cannot emit a friendly, status-aware warning.
 
 ## 3. Directory tree (architecture evidence)
 

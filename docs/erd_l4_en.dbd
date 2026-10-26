@@ -50,6 +50,7 @@ Table appointment {
   ngay_hen date [not null]
   gio_bat_dau time [not null]
   gio_ket_thuc time [not null, note: 'CON-01 end > start']
+  is_deleted boolean [not null, default: false, note: 'TD-05 soft delete; excluded from default list/conflict']
 }
 
 Table ticket_status_log {
