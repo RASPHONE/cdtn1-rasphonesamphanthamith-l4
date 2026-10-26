@@ -88,6 +88,8 @@ pnpm-debug.log*
 *.feather
 # Exception for Docs
 !docs/*.sql
+# Exception for Migrations
+!db/migrations/*.sql
 
 # Case study datasets (Only commit small samples)
 # Keep data/sample/ tracked; ignore everything else under data/
