@@ -98,6 +98,13 @@ def seed():
     (4, 105, 'DANG_XU_LY', 'HOAN_TAT', 1, NULL),
     (5, 105, 'HOAN_TAT', 'DA_DONG', 1, NULL)
     ON CONFLICT (log_id) DO NOTHING;
+
+    -- 7. Sync sequences after explicit ID inserts
+    SELECT setval('issue_category_category_id_seq', COALESCE((SELECT MAX(category_id) FROM issue_category), 1));
+    SELECT setval('technician_technician_id_seq', COALESCE((SELECT MAX(technician_id) FROM technician), 1));
+    SELECT setval('ticket_ticket_id_seq', COALESCE((SELECT MAX(ticket_id) FROM ticket), 1));
+    SELECT setval('appointment_appointment_id_seq', COALESCE((SELECT MAX(appointment_id) FROM appointment), 1));
+    SELECT setval('ticket_status_log_log_id_seq', COALESCE((SELECT MAX(log_id) FROM ticket_status_log), 1));
     """
 
     statements = split_sql(sql)
