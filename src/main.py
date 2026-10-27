@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.errors import AppError, HTTP_BY_CODE
 from src.routes.health import router as health_router
@@ -14,6 +15,15 @@ def create_app() -> FastAPI:
         title="Mekong Mobile L4",
         description="Technician Assignment and Appointment Scheduling",
         version="0.2.0",
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.include_router(health_router)

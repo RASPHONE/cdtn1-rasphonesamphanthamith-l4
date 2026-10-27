@@ -30,6 +30,19 @@ Details: `docs/srs_en.md`.
 3. `python scripts/migrate.py`  # creates schema from `db/schema.sql`, loads `data/sample/`
 4. `uvicorn src.main:app --reload` → open `http://localhost:8000/health`
 
+## Run Frontend (React + Vite)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173`.
+Demo accounts:
+- `manager1` / `manager123` (Center 1)
+- `manager2` / `manager123` (Center 2)
+
 ## 4. Directory structure
 ```text
 docs/      BT1 design documents + original .drawio sources:
