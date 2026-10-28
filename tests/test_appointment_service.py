@@ -172,7 +172,7 @@ def test_create_valid_appointment():
     assert result["technician_id"] == 1
     assert result["center_id"] == 1
     assert result["loai"] == "GIAO_MAY"
-    assert result["trang_thai"] == "DA_DAT"
+    assert result["trang_thai"] == "DA_XAC_NHAN"
     assert result["is_deleted"] is False
 
 

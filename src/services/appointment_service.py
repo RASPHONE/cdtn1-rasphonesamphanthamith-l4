@@ -111,7 +111,7 @@ class AppointmentService:
             "technician_id": ticket["technician_id"],
             "center_id": ticket["center_id"],
             "loai": payload.loai,
-            "trang_thai": "DA_DAT",
+            "trang_thai": "DA_XAC_NHAN",
             "ngay_hen": payload.ngay_hen,
             "gio_bat_dau": payload.gio_bat_dau,
             "gio_ket_thuc": payload.gio_ket_thuc,

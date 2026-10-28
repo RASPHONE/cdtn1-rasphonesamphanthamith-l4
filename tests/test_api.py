@@ -104,7 +104,7 @@ def test_appointment_crud_flow(client):
     assert appointment["ticket_id"] == 103
     assert appointment["technician_id"] == 1
     assert appointment["center_id"] == 1
-    assert appointment["trang_thai"] == "DA_DAT"
+    assert appointment["trang_thai"] == "DA_XAC_NHAN"
     assert appointment["is_deleted"] is False
 
     conflict_response = client.post(
@@ -406,7 +406,9 @@ def test_ticket_assignment_flow(client):
 
     assert qualified_response.status_code == 200
 
-    qualified_technicians = qualified_response.json()
+    qualified_data = qualified_response.json()
+    assert qualified_data["ticket_id"] == 101
+    qualified_technicians = qualified_data["items"]
 
     assert len(qualified_technicians) >= 1
 

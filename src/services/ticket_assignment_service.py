@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 
+from src.db import get_connection
 from src.errors import AppError
 from src.schemas.ticket import AssignmentCreate, AssignmentUpdate
 
@@ -48,16 +49,21 @@ class TicketAssignmentService:
         *,
         center_id: int,
         ticket_id: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         ticket = self._get_active_ticket_for_center(
             center_id=center_id,
             ticket_id=ticket_id,
         )
 
-        return self.technician_repo.list_qualified_for_category(
+        items = self.technician_repo.list_qualified_for_category(
             center_id=ticket["center_id"],
             category_id=ticket["category_id"],
         )
+
+        return {
+            "ticket_id": ticket_id,
+            "items": items,
+        }
 
     def assign_technician(
         self,
@@ -83,11 +89,22 @@ class TicketAssignmentService:
             technician_id=payload.technician_id,
         )
 
-        updated_ticket = self.ticket_repo.assign_technician(
-            ticket_id=ticket_id,
-            technician_id=technician["technician_id"],
-            new_status="DA_PHAN_CONG",
-        )
+        # NFR5: ticket update + status log insert in ONE transaction.
+        with get_connection() as conn:
+            updated_ticket = self.ticket_repo.assign_technician(
+                ticket_id,
+                technician["technician_id"],
+                "DA_PHAN_CONG",
+                conn=conn,
+            )
+            log_id = self.status_log_repo.create(
+                ticket_id=ticket_id,
+                from_status="MOI",
+                to_status="DA_PHAN_CONG",
+                changed_by=changed_by,
+                note=None,
+                conn=conn,
+            )
 
         if not updated_ticket:
             raise AppError(
@@ -95,14 +112,7 @@ class TicketAssignmentService:
                 "Ticket not found.",
             )
 
-        self.status_log_repo.create(
-            ticket_id=ticket_id,
-            from_status="MOI",
-            to_status="DA_PHAN_CONG",
-            changed_by=changed_by,
-            note=None,
-        )
-
+        updated_ticket["log_id"] = log_id
         return updated_ticket
 
     def reassign_technician(
@@ -126,10 +136,10 @@ class TicketAssignmentService:
 
         reason = payload.reason.strip()
 
-        if not reason:
+        if len(reason) < 5 or len(reason) > 255:
             raise AppError(
                 "reason_required",
-                "Reassignment reason is required.",
+                "Reassignment reason must be between 5 and 255 characters.",
             )
 
         technician = self._get_qualified_technician(
@@ -137,10 +147,21 @@ class TicketAssignmentService:
             technician_id=payload.technician_id,
         )
 
-        updated_ticket = self.ticket_repo.update_technician(
-            ticket_id=ticket_id,
-            technician_id=technician["technician_id"],
-        )
+        # NFR5: ticket update + status log insert in ONE transaction.
+        with get_connection() as conn:
+            updated_ticket = self.ticket_repo.update_technician(
+                ticket_id,
+                technician["technician_id"],
+                conn=conn,
+            )
+            log_id = self.status_log_repo.create(
+                ticket_id=ticket_id,
+                from_status=ticket["status"],
+                to_status=ticket["status"],
+                changed_by=changed_by,
+                note=reason,
+                conn=conn,
+            )
 
         if not updated_ticket:
             raise AppError(
@@ -148,14 +169,7 @@ class TicketAssignmentService:
                 "Ticket not found.",
             )
 
-        self.status_log_repo.create(
-            ticket_id=ticket_id,
-            from_status=ticket["status"],
-            to_status=ticket["status"],
-            changed_by=changed_by,
-            note=reason,
-        )
-
+        updated_ticket["log_id"] = log_id
         return updated_ticket
 
     def _get_active_ticket_for_center(

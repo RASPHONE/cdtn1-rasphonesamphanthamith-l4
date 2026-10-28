@@ -14,15 +14,7 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentUpdate(BaseModel):
     loai: Optional[Literal["GIAO_MAY", "NHAN_MAY", "KIEM_TRA_TAI_CHO"]] = None
-    trang_thai: Optional[
-        Literal[
-            "DA_DAT",
-            "DA_XAC_NHAN",
-            "HOAN_TAT",
-            "KHACH_HUY",
-            "KHACH_KHONG_DEN",
-        ]
-    ] = None
+    trang_thai: Optional[Literal["DA_XAC_NHAN"]] = None
     ngay_hen: Optional[date] = None
     gio_bat_dau: Optional[time] = None
     gio_ket_thuc: Optional[time] = None

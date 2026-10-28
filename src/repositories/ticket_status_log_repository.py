@@ -8,11 +8,12 @@ class PostgresTicketStatusLogRepository:
         self,
         *,
         ticket_id: int,
-        from_status: Optional[str],
+        from_status,
         to_status: str,
         changed_by: int,
-        note: Optional[str] = None,
-    ) -> None:
+        note=None,
+        conn=None,
+    ):
         sql = """
         INSERT INTO ticket_status_log (
             ticket_id,
@@ -22,17 +23,20 @@ class PostgresTicketStatusLogRepository:
             note
         )
         VALUES (%s, %s, %s, %s, %s)
+        RETURNING log_id
         """
 
-        with get_connection() as conn:
-            with conn.cursor() as cur:
+        def _do(c):
+            with c.cursor() as cur:
                 cur.execute(
                     sql,
-                    (
-                        ticket_id,
-                        from_status,
-                        to_status,
-                        changed_by,
-                        note,
-                    ),
+                    (ticket_id, from_status, to_status, changed_by, note),
                 )
+                row = cur.fetchone()
+                return row["log_id"] if row else None
+
+        if conn is not None:
+            return _do(conn)
+
+        with get_connection() as c:
+            return _do(c)

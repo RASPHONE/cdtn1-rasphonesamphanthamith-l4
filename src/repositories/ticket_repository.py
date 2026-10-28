@@ -28,16 +28,22 @@ class PostgresTicketRepository:
       ON ic.category_id = t.category_id
     """
 
-    def get_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, ticket_id: int, conn=None):
         sql = f"""
         {self.BASE_SELECT}
         WHERE t.ticket_id = %s
         """
 
-        with get_connection() as conn:
-            with conn.cursor() as cur:
+        def _query(c):
+            with c.cursor() as cur:
                 cur.execute(sql, (ticket_id,))
                 return cur.fetchone()
+
+        if conn is not None:
+            return _query(conn)
+
+        with get_connection() as c:
+            return _query(c)
 
     def list_unassigned(
         self,
@@ -99,8 +105,9 @@ class PostgresTicketRepository:
         ticket_id: int,
         technician_id: int,
         new_status: str,
-    ) -> Optional[Dict[str, Any]]:
-        sql = """
+        conn=None,
+    ):
+        update_sql = """
         UPDATE ticket
         SET technician_id = %s,
             status = %s
@@ -108,26 +115,37 @@ class PostgresTicketRepository:
           AND is_deleted = FALSE
         """
 
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(sql, (technician_id, new_status, ticket_id))
+        def _do(c):
+            with c.cursor() as cur:
+                cur.execute(update_sql, (technician_id, new_status, ticket_id))
+            return self.get_by_id(ticket_id, conn=c)
 
-        return self.get_by_id(ticket_id)
+        if conn is not None:
+            return _do(conn)
+
+        with get_connection() as c:
+            return _do(c)
 
     def update_technician(
         self,
         ticket_id: int,
         technician_id: int,
-    ) -> Optional[Dict[str, Any]]:
-        sql = """
+        conn=None,
+    ):
+        update_sql = """
         UPDATE ticket
         SET technician_id = %s
         WHERE ticket_id = %s
           AND is_deleted = FALSE
         """
 
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(sql, (technician_id, ticket_id))
+        def _do(c):
+            with c.cursor() as cur:
+                cur.execute(update_sql, (technician_id, ticket_id))
+            return self.get_by_id(ticket_id, conn=c)
 
-        return self.get_by_id(ticket_id)
+        if conn is not None:
+            return _do(conn)
+
+        with get_connection() as c:
+            return _do(c)

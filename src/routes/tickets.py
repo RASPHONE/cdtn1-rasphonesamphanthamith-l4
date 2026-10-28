@@ -13,6 +13,7 @@ from src.repositories.ticket_status_log_repository import (
 from src.schemas.ticket import (
     AssignmentCreate,
     AssignmentUpdate,
+    QualifiedTechnicianList,
     QualifiedTechnicianRead,
     TicketAssignmentRead,
     UnassignedTicketList,
@@ -52,7 +53,7 @@ def list_unassigned_tickets(
 
 @router.get(
     "/{ticket_id}/qualified-technicians",
-    response_model=List[QualifiedTechnicianRead],
+    response_model=QualifiedTechnicianList,
 )
 def list_qualified_technicians(
     ticket_id: int,

@@ -53,3 +53,8 @@ class TicketAssignmentRead(BaseModel):
     center_id: int
     status: str
     technician_id: int
+    log_id: int
+
+class QualifiedTechnicianList(BaseModel):
+    ticket_id: int
+    items: List[QualifiedTechnicianRead]

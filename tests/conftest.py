@@ -53,7 +53,7 @@ class FakeTicketRepository:
 
         return items[start:end], total
 
-    def assign_technician(self, ticket_id, technician_id, new_status):
+    def assign_technician(self, ticket_id, technician_id, new_status, conn=None):
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             return None
@@ -63,7 +63,7 @@ class FakeTicketRepository:
 
         return dict(ticket)
 
-    def update_technician(self, ticket_id, technician_id):
+    def update_technician(self, ticket_id, technician_id, conn=None):
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             return None
@@ -184,6 +184,7 @@ class FakeIssueCategoryRepository:
 class FakeTicketStatusLogRepository:
     def __init__(self):
         self.logs = []
+        self.next_log_id = 1000
 
     def create(
         self,
@@ -193,9 +194,14 @@ class FakeTicketStatusLogRepository:
         to_status,
         changed_by,
         note=None,
+        conn=None,
     ):
+        log_id = self.next_log_id
+        self.next_log_id += 1
+
         self.logs.append(
             {
+                "log_id": log_id,
                 "ticket_id": ticket_id,
                 "from_status": from_status,
                 "to_status": to_status,
@@ -203,6 +209,7 @@ class FakeTicketStatusLogRepository:
                 "note": note,
             }
         )
+        return log_id
 
 
 class FakeAppointmentRepository:
