@@ -6,7 +6,7 @@ in `docs/thay-doi-thiet-ke.md` (TD-16 summarises the structural ones).
 
 ![As-built architecture](exports/Architecture_As_Built.png)
 
-Diagram source: `docs/diagrams/architecture-thuc-te.mmd` (Mermaid).
+Diagram source: `docs/architecture-thuc-te.drawio` (open in draw.io; PNG export in `docs/exports/`).
 
 ## 1. Layers and where they live
 
