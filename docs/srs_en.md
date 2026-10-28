@@ -2,7 +2,7 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.4.1
+- **Version:** v0.5
 - **BT2 target tag:** v0.2
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
@@ -122,6 +122,7 @@ Role permissions:
 | FR9 | The system shall filter the unassigned ticket list by issue category and priority. | — | SHOULD |
 | FR10 | The system shall allow center managers to maintain technician_skill records for technicians in their own center: list, read, create, update proficiency, and delete. Proficiency must remain between 1 and 5. Duplicate `(technician_id, category_id)` values must be rejected. | QT-08, QT-14, BT2 S1 | SHOULD |
 | FR11 | The system shall allow center managers to read appointment details/lists for their own center and soft-delete active appointments by setting `appointment.is_deleted = true`. Soft-deleted appointments are excluded from default appointment lists and conflict checks. | BT2 S1 | SHOULD |
+| FR12 | The system shall provide minimal demo authentication to derive the caller's `center_id` server-side, enforcing QT-14 center scoping. | BT2 Component 3, QT-14 | MUST |
 
 ### 3.2 User Stories implemented or supported in BT2
 
@@ -142,6 +143,8 @@ Role permissions:
 **US12 (SHOULD).** As a center manager, I want to maintain technician skill records for technicians in my center so that qualified-technician suggestions reflect current proficiency.
 
 **US13 (SHOULD).** As a center manager, I want to soft-delete erroneous active appointments so that they no longer affect scheduling while the record remains for traceability.
+
+**US14 (MUST).** As a center manager, I want to log in with a demo account so that the system can identify my center and restrict my access to data belonging to my center.
 
 ### 3.3 Deferred and excluded User Stories
 
@@ -201,6 +204,12 @@ Role permissions:
 - **AC2.** GIVEN a soft-deleted appointment, WHEN the manager reads the default appointment list, THEN the appointment is not shown.
 - **AC3.** GIVEN a soft-deleted appointment, WHEN the manager creates another appointment at the same time for the same technician, THEN the soft-deleted appointment does not cause a conflict.
 - **AC4.** GIVEN an appointment with `trang_thai = HOAN_TAT`, WHEN the manager requests DELETE, THEN the system rejects the request with HTTP 422.
+
+#### US14 — Minimal demo authentication
+
+- **AC1.** GIVEN valid credentials for `manager1`, WHEN the manager logs in, THEN the system returns a token containing `center_id = 1` and `role = CENTER_MANAGER`.
+- **AC2.** GIVEN invalid credentials, WHEN the manager logs in, THEN the system returns HTTP 401 with error `invalid_credentials`.
+- **AC3.** GIVEN a protected endpoint, WHEN the request has no token, THEN the system returns HTTP 401 with error `unauthorized`.
 
 ---
 
@@ -282,6 +291,7 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | BT3 |
 | FR10 | Maintain technician skill records | US12 | UC2 | SHOULD | technician_skill, technician, issue_category | M2 | BT3 |
 | FR11 | Read and soft-delete appointments | US13 | UC4 | SHOULD | appointment | M3 | BT3 |
+| FR12 | Minimal demo authentication for center scoping | US14 | UC1-UC4 (precondition) | MUST | (infrastructure) | Login screen | BT3 |
 
 **Row read:** every FR (none is WON'T) has a User Story, Use Case, data table, and screen. No blank cells.
 
@@ -300,3 +310,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.3 | Session 5 consolidation | Extended traceability matrix with Data table and Screen columns; added `technician.ho_ten` terminology row; added design note 5 (`ticket.category_id` NOT NULL) | Session 5 arrival & review |
 | v0.4 | Post-BT1 (Session 8) | NFR4 threshold made measurable (100% mask format) per feedback TD-01 | BT1 feedback |
 | v0.4.1 | BT2 | Added FR10/FR11 and US12/US13 for BT2 full-CRUD requirement; added appointment soft-delete and technician skill CRUD design notes; normalized BT2 target tag to v0.2. | BT2 [SE] S1 and tag clarification |
+| v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |

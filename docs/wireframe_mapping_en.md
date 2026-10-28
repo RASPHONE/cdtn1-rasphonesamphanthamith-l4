@@ -49,3 +49,6 @@ NOT NULL coverage: appointment's `ticket_id / technician_id / center_id / trang_
 ## 4. Absent by design
 
 No `location`, no appointment `note/ghi_chu`, no `KIEM_TRA_TAI_CHO` option in v0.2; no technician or customer screens. Each absence traces to a locked scope decision in SRS v0.2 §1.3 / §5 notes.
+
+## 5. BT2 Scope Reconciliation: technician_skill
+In BT1, `technician_skill` was documented as imported master data with no admin screen in v0.2 (NFR7 insert-only). For BT2, API-level CRUD endpoints were added to satisfy the BT2 requirement that at least two entities support full CRUD operations. This serves as a backend support API for the qualification matrix (QT-08). **No new customer-facing or manager-facing screen is introduced**, so the "no admin screen in v0.2" wireframe constraint remains true.

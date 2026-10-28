@@ -99,6 +99,8 @@ Prints the number of PASSed tests. Status: no tests at the BT1 milestone;
 |---|---|---|---|
 | 2026-10-15 | NFR4 threshold made measurable (100% mask format `090****567`); API Contract and directory tree kept repo-only, Report retained at 29 pages (reduced from 35 via TD-02 API-contract removal + TOC resize); 6–9 page guideline not met — deviation accepted with documented reasons | BT1 feedback TD-01, TD-02, TD-03 | `docs/thay-doi-thiet-ke_en.md` |
 | 2026-10-15 | Normalized tags and added BT2 design changes: appointment soft-delete, technician_skill CRUD, minimal demo auth decision | BT2 | `docs/thay-doi-thiet-ke_en.md` |
+| 2026-10-21 | Implemented BT2 core module for L4: appointment CRUD with soft delete, `technician_skill` CRUD, unassigned-ticket list, qualified-technician suggestion, assignment/reassignment, minimal demo authentication for QT-14 center scoping, seeded sample data, automated tests, and M1–M3 frontend screens. | BT2 Components 1–3: core module, tests, and presentation layer | `docs/thay-doi-thiet-ke_en.md`; `src/`; `tests/`; `frontend/`; `scripts/` |
+| 2026-10-26 | BT2 implementation and alignment: added/updated US14/FR12 demo-authentication traceability; documented `technician_skill` API-only CRUD scope; aligned appointment `DA_XAC_NHAN` create/confirm behavior; documented completed-appointment soft-delete rejection; enforced reassignment reason length 5–255; implemented NFR5 atomic assignment transaction; aligned qualified-technician response to `{ "ticket_id", "items": [...] }`; added assignment response `log_id`. | BT2 rubric consistency, traceability, and API-contract alignment | `docs/thay-doi-thiet-ke_en.md` TD-09 to TD-14; `docs/srs_en.md`; `docs/api_contract_en.md` |
 
-Internal SRS change log (v0.1 → v0.4, including pre-submission iterations):
+Internal SRS change log (v0.1 → v0.5, including pre-submission iterations):
 see `docs/srs_en.md` → Document control.

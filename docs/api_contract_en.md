@@ -43,9 +43,10 @@ Companion artifacts: `docs/srs_en.md` (v0.3), `docs/erd_l4_en.dbd`, `docs/ddl_l4
 | 13 | POST | `/api/technicians/{technician_id}/skills` | US12 | FR10 | UC2 |
 | 14 | PATCH | `/api/technicians/{technician_id}/skills/{category_id}` | US12 | FR10 | UC2 |
 | 15 | DELETE | `/api/technicians/{technician_id}/skills/{category_id}` | US12 | FR10 | UC2 |
-| 16 | POST | `/api/auth/login` | infrastructure | QT-14, NFR3 | — |
+| 16 | POST | `/api/auth/login` | US14 | FR12 | UC1–UC4 (precondition) |
 
-Endpoints 1–15 serve business User Stories. Endpoint 16 is minimal infrastructure required by BT2 extension and supports center scoping for all protected endpoints.
+No surplus endpoints: every row serves at least one User Story in the SRS matrix.
+Endpoint 16 is minimal demo authentication required by BT2. It is infrastructure supporting QT-14 center scoping for endpoints 1–15. It is not a production authentication provider.
 
 ## 3. Endpoint details
 
@@ -113,7 +114,7 @@ overlapping interval).
 
 ### 3.6 PATCH /api/appointments/{appointment_id}
 Request: optional subset `{ "loai", "ngay_hen", "gio_bat_dau", "gio_ket_thuc", "trang_thai" }`.
-In v0.2 `trang_thai` may only be set to `DA_XAC_NHAN` (confirm); cancellation
+In v0.2 `trang_thai` may **only** be set to `DA_XAC_NHAN` (confirm); cancellation
 statuses (`KHACH_HUY`, `KHACH_KHONG_DEN`) are deferred with US10.
 Conflict check excludes the appointment being updated.
 - 200 updated object · 409 `appointment_conflict` · 422 (same codes as 3.5)
@@ -162,7 +163,7 @@ Soft delete. Sets `appointment.is_deleted = true`. Does not physically remove th
 ```
 - 403 `cross_center_access`.
 - 404 `appointment_not_found` — already deleted or does not exist.
-- 422 `appointment_completed_cannot_delete` — `trang_thai = HOAN_TAT`.
+- 422 `appointment_completed_cannot_delete` — `trang_thai = HOAN_TAT`. completed appointments cannot be soft-deleted.
 
 ### 3.11 GET /api/technicians/{technician_id}/skills
 
@@ -264,3 +265,7 @@ Request:
 - Concurrency: conflict detection is a service-layer blocking check (SRS §5
   note 1); a simultaneous double-submit is theoretically possible and is
   accepted in v0.2 (one manager per center).
+
+- **BT2 Scope Adjustments:** 
+  - `technician_skill` CRUD (`POST/PATCH/DELETE /api/technicians/{id}/skills`) was added in BT2 to satisfy the requirement that at least two entities support full CRUD. In BT1, this was assumed to be imported master data. This is an API-only admin support feature; no new UI screen is introduced.
+  - `POST /api/auth/login` was added as infrastructure to support QT-14 center scoping via JWT tokens.

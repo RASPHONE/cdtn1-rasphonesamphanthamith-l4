@@ -60,3 +60,35 @@ of this file with the next TD-xx codes.*
 - **Feedback/Reason:** Official BT2 tag is `v0.2`. Previous references to `v0.5` were mistaken or should refer to the BT1 baseline.
 - **Decision:** BT1 baseline references use `v0.1`. BT2 submission tag uses `v0.2`. Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
 - **Impact:** README, SRS, API contract, and other docs only. No business logic changes.
+
+## BT2 Implementation Alignments (Session 10-12)
+
+### TD-09 Align appointment create status to `DA_XAC_NHAN`
+- **Feedback/Reason:** BT1 SRS (US5 AC1), API contract (§3.5), and Wireframe M3 all specified that confirmed appointments are created as `DA_XAC_NHAN`. The initial BT2 implementation incorrectly used `DA_DAT`.
+- **Decision:** FIX. Updated `AppointmentService.create_appointment` to set `trang_thai = DA_XAC_NHAN`.
+- **Impact:** Code only. Aligns implementation with approved BT1 design.
+
+### TD-10 Restrict PATCH appointment status
+- **Feedback/Reason:** API contract §3.6 states that in v0.2, `trang_thai` may only be updated to `DA_XAC_NHAN`. Cancellation statuses are deferred to US10.
+- **Decision:** FIX. Restricted `AppointmentUpdate` schema Literal to only allow `DA_XAC_NHAN`.
+- **Impact:** Code and API contract clarification. Prevents managers from setting deferred statuses via API.
+
+### TD-11 Enforce reassignment reason length
+- **Feedback/Reason:** API contract validation table specifies `reason` must be 5–255 characters. Initial implementation only checked for non-empty strings.
+- **Decision:** FIX. Added length validation (`len(reason) < 5 or len(reason) > 255`) in `TicketAssignmentService.reassign_technician`.
+- **Impact:** Code only. Enforces QT-07 strictly as specified in the contract.
+
+### TD-12 Implement NFR5 service-layer transaction boundary
+- **Feedback/Reason:** Architecture rationale #4 claimed that ticket updates and status log inserts are wrapped in one database transaction (NFR5). However, repositories were opening independent connections, risking partial commits if the log insert failed.
+- **Decision:** FIX. Refactored `TicketRepository` and `TicketStatusLogRepository` to accept an optional shared `conn` parameter. `TicketAssignmentService` now opens a single `with get_connection() as conn:` block to coordinate both writes atomically.
+- **Impact:** Code and test fakes. Fulfills the NFR5 reliability promise made in BT1.
+
+### TD-13 Qualified-technician response shape and `log_id`
+- **Feedback/Reason:** API contract §3.2 specified the qualified technicians response should be wrapped in `{ "ticket_id": ..., "items": [...] }`. Contract §3.3/3.4 specified the assignment response should include the new `log_id`.
+- **Decision:** FIX. Wrapped the service response in `QualifiedTechnicianList` schema. Added `log_id` to `TicketAssignmentRead` schema, populated from the status log repository.
+- **Impact:** Code, schemas, and API tests. Ensures frontend and API contract are perfectly aligned.
+
+### TD-14 Traceability for demo auth and technician_skill CRUD
+- **Feedback/Reason:** API contract self-check requires every endpoint to trace to a User Story. `POST /api/auth/login` lacked traceability. Additionally, `technician_skill` CRUD was added in BT2, contradicting the BT1 "imported master data" assumption.
+- **Decision:** FIX. Added FR12 and US14 to SRS for minimal demo auth. Added reconciliation notes to API contract and Wireframe mapping explaining the `technician_skill` CRUD scope adjustment.
+- **Impact:** SRS (bumped to v0.5), API contract, Wireframe mapping. Ensures 100% traceability matrix compliance.
