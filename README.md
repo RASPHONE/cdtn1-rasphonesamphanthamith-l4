@@ -137,11 +137,11 @@ Naming convention: code identifiers are English (`snake_case` in Python, `camelC
 JavaScript); data fields keep the exact ERD column names from the SRS glossary
 (`ngay_hen`, `gio_bat_dau`, `trang_thai`, `ho_ten`, …). The UI text is Vietnamese.
 
-## 9. Design changes and history
-
-Every difference from the BT1 design, with reason and impact: `docs/thay-doi-thiet-ke.md` (TD-01 … TD-29).
-Bugs found and fixed: `docs/bug-log.md`. AI usage: `docs/ai-disclosure.md`.
+## 9. Current status
 
 - [x] BT1 — analysis & design (PDF submitted; design files in `docs/`)
 - [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
 - [ ] BT3 — test plan/report and packaging (tag `v1.0`)
+
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-29) ·
+bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.

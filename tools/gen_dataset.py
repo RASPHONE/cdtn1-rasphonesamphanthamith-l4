@@ -1,7 +1,7 @@
 # tools/gen_dataset.py
-# Course-provided generator for the Mekong Mobile case-study dataset (seed 20260901),
-# copied unchanged from the course material "20_dataset_generation_code.md", except:
-#   the output folder comes from argv[1] (default data/raw) instead of /tmp/course/dataset.
+# Generator of the Mekong Mobile case-study dataset (seed 20260901), provided with the
+# course case study. Copied unchanged except that the output folder comes from argv[1]
+# (default data/raw) instead of /tmp/course/dataset.
 # Usage: python tools/gen_dataset.py data/raw
 # -*- coding: utf-8 -*-
 """Sinh bo du lieu mau Mekong Mobile cho Chuyen de tot nghiep 1."""

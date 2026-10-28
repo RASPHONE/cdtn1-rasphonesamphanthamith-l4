@@ -53,7 +53,11 @@ Companion artifacts: `docs/srs.md` (v0.6), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sq
 | 18 | GET | `/api/issue-categories` | US8 | FR9 | UC1 (M1 filter, NFR7) |
 | 19 | GET | `/health` | — (infrastructure) | — | — |
 
-No surplus endpoints: every row serves at least one User Story in the SRS matrix.
+No surplus business endpoints: rows 1–15, 17 and 18 each serve at least one User Story
+in the SRS matrix. Rows 16 (`/api/auth/login`) and 19 (`/health`) are infrastructure:
+login is the precondition of every use case (US14/FR12), and `/health` serves the
+packaging and grading checks (README section 6, Docker health checks) — neither carries
+business logic.
 Endpoints 17–18 were added in BT2 (TD-19) to feed the wireframe summary blocks and the M1 category filter without hard-coded data. Endpoint 19 is an infrastructure health check.
 Endpoint 16 is minimal demo authentication required by BT2. It is infrastructure supporting QT-14 center scoping for endpoints 1–15. It is not a production authentication provider.
 

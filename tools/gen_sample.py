@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# tools/gen_sample.py: course-provided, copied unchanged from "20_dataset_generation_code.md".
+# tools/gen_sample.py: provided with the course case study, copied unchanged.
 """
 gen_sample.py - Sinh du lieu mo phong bo sung cho case study Smart CRM - Mekong Mobile.
 Chuyen de tot nghiep 1 - Khoa CNTT - Truong Dai hoc REDACTED.
