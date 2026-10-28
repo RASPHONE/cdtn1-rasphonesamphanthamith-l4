@@ -17,7 +17,7 @@ Pattern: **Layered (4 layers)** as the frame, **MVC** inside the Presentation la
 
 ## 2. Architecture rationale (template: Because NFRx requires <threshold>, I choose <decision>; the trade-off is <cost>)
 
-1. **Because NFR1** requires the unassigned warranty ticket list to render in **under 2 seconds for up to 500 open tickets per center**, I choose **server-side filtering, sorting and pagination executed in the repository query**, backed by the composite index `idx_ticket_unassigned ON ticket(center_id, status, technician_id, due_date)`, instead of loading all tickets and filtering in the presentation layer; **the trade-off is** extra write cost on every ticket update and one additional index to maintain.
+1. **Because NFR1** requires the unassigned warranty ticket list to render in **under 2 seconds for up to 500 open tickets per center**, I choose **server-side filtering, sorting and pagination executed in the repository query**, backed by the partial index `idx_ticket_unassigned ON ticket(center_id, due_date) WHERE status = 'MOI' AND technician_id IS NULL AND is_deleted = FALSE`, instead of loading all tickets and filtering in the presentation layer; **the trade-off is** extra write cost on every ticket update and one additional index to maintain.
 
 2. **Because NFR2** requires the qualified-technician panel to return in **under 1 second for up to 40 active technicians and 6 issue categories**, I choose **a single indexed join query** (`technician ⋈ technician_skill` filtered by `center_id`, `category_id`, `proficiency ≥ 3`, `is_active = true`) executed by TechnicianSuggestionService, **without any caching layer**; **the trade-off is** that the query must be reworked if eligibility rules grow (e.g. workload-based ranking), and `idx_skill_lookup` adds maintenance cost.
 
@@ -27,9 +27,11 @@ Pattern: **Layered (4 layers)** as the frame, **MVC** inside the Presentation la
 
 5. **Because NFR7** requires that adding a new issue category needs **only one INSERT into `issue_category` with zero code changes**, I choose to **drive all eligibility logic from the `issue_category` and `technician_skill` tables** and forbid hard-coded category enums in code; **the trade-off is** that category master data must be administered by direct INSERT until a (deferred, SHOULD) admin screen exists.
 
-6. **Because FR7 combined with NFR6** requires the manager to see an **understandable conflict warning and finish rescheduling within 3 minutes**, I compared two options — (A) a service-layer overlap query over active appointments (`trang_thai IN ('DA_DAT','DA_XAC_NHAN')`) using `idx_appointment_overlap`, versus (B) a PostgreSQL exclusion constraint — and I choose **option A**; **the trade-off is** that option A is not concurrency-proof at the database level (two simultaneous submits could theoretically overlap), which I accept because v0.2 has a single manager per center, whereas option B would be absolute but cannot emit a friendly, status-aware warning.
+6. **Because FR7 combined with NFR6** requires the manager to see an **understandable conflict warning and finish rescheduling within 3 minutes**, I compared two options — (A) a service-layer overlap query over active appointments (`trang_thai IN ('DA_DAT','DA_XAC_NHAN')`) using `idx_appointment_overlap` (renamed `idx_appointment_active_overlap` with the soft-delete filter in migration 002, TD-05), versus (B) a PostgreSQL exclusion constraint — and I choose **option A**; **the trade-off is** that option A is not concurrency-proof at the database level (two simultaneous submits could theoretically overlap), which I accept because v0.2 has a single manager per center, whereas option B would be absolute but cannot emit a friendly, status-aware warning.
 
 ## 3. Directory tree (architecture evidence)
+
+BT1 plan. The implemented tree is in README section 8 and `docs/architecture-thuc-te.md` (TD-16).
 
 ```text
 warranty-l4/
@@ -42,6 +44,6 @@ warranty-l4/
 │   ├── domain/            Ticket, Appointment, eligibility rules as pure functions
 │   └── repositories/      interfaces + Pg* implementations + Mem* for tests
 ├── db/schema.sql          layer 4 (DDL skeleton)
-└── docs/                  srs.md, usecase_l4.drawio, architecture_l4.drawio,
-                           erd_l4.drawio, api-contract.md, ai-disclosure.md
+└── docs/                  srs.md, usecase_l4_en.drawio, architecture_l4_en.drawio,
+                           erd_l4_en.drawio, api-contract.md, ai-disclosure.md
 ```

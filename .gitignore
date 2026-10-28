@@ -1,6 +1,6 @@
 # ============================================================
 # .gitignore — L4 Technician Assignment and Appointment Scheduling
-# Stack: Python 3.11+ / FastAPI / SQLAlchemy / PostgreSQL 16
+# Stack: Python 3.11+ / FastAPI / psycopg 3 / PostgreSQL 16
 #        React (Vite) / pytest / Docker
 # Rule: NEVER commit secrets, local env, build artifacts,
 #       large datasets, or IDE-specific configs.

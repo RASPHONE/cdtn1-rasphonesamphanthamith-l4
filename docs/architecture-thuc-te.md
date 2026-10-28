@@ -44,7 +44,7 @@ grep -rn  "fetch(" frontend/src/pages frontend/src/components                 # 
 |---|---|
 | NFR1 list < 2 s / 500 tickets | Server-side filter, sort and `LIMIT/OFFSET` in `PostgresTicketRepository.list_unassigned`; partial index `idx_ticket_unassigned` |
 | NFR2 suggestion < 1 s | One indexed query in `PostgresTechnicianRepository.list_qualified_for_category` (`idx_skill_lookup`) |
-| NFR3 cross-center → 403 | `center_id` only from the JWT (`security.py`), checked in every service method (`cross_center_access`) |
+| NFR3 cross-center → 403 | `center_id` only from the JWT (`security.py`); list queries are filtered by it, and every method addressing one record checks it (`cross_center_access` → 403) |
 | NFR4 phone masking | `services/phone_masking.py`, tests in `tests/test_phone_masking.py` |
 | NFR5 all-or-nothing | `repositories/transaction.py` + guarded UPDATE; failure ⇒ rollback, no log row |
 | NFR7 new category = 1 INSERT | Categories read from `issue_category` (`GET /api/issue-categories`), no enum in code |

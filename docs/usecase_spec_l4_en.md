@@ -2,7 +2,7 @@
 
 - **Primary actor:** Center Manager
 - **Goal:** Assign exactly one qualified technician to a warranty ticket, or change the assignment with a recorded reason.
-- **Preconditions:** Manager is logged in and scoped to their own service center (QT-14); the ticket belongs to that center; ticket status is not `DA_DONG` or `DA_HUY`.
+- **Preconditions:** Manager is logged in and scoped to their own service center (QT-14); the ticket belongs to that center and is a warranty ticket; ticket status is not `HOAN_TAT`, `DA_DONG` or `DA_HUY`; first assignment requires status `MOI`.
 - **Postconditions:** `ticket.technician_id` is set; if the previous status was `MOI`, status becomes `DA_PHAN_CONG`; one `ticket_status_log` entry is written (with reason when reassigning).
 - **Related:** US2, US3, US4 · FR2, FR3, FR4, FR5, FR8 · QT-07, QT-08 · Includes UC2
 - **Priority:** MUST
@@ -13,7 +13,7 @@
 2. The system displays the ticket summary: `ticket_code`, `issue_category`, `priority`, `due_date`, `customer_name`, `customer_phone` (full display for Center Manager, QT-15), `serial_no`.
 3. The system invokes UC2 and lists qualified technicians: same `center_id`, `is_active = true`, `technician_skill.proficiency ≥ 3`, each with current workload count (FR8).
 4. The manager selects exactly one technician.
-5. If the ticket already has an assigned technician (reassignment), the system requires a non-empty reason.
+5. If the ticket already has an assigned technician (reassignment), the system requires a reason of 5–255 characters.
 6. The manager confirms the assignment.
 7. The system validates eligibility (QT-08) and the one-technician rule (QT-07).
 8. The system saves `technician_id`; changes status `MOI → DA_PHAN_CONG` when applicable; writes a `ticket_status_log` entry with `changed_by` and the reason (reassignment only).
@@ -22,7 +22,7 @@
 **Exception flows (numbered by step)**
 
 - **3a.** No qualified technician exists → system shows "No qualified technician available" and disables Confirm; manager may cancel without changes.
-- **5a.** Reassignment reason is empty → system rejects and displays "Reason is required when changing technician."; selection is kept.
+- **5a.** Reassignment reason is missing or shorter than 5 characters → system rejects (422 `reason_required`, "Reason is required when changing technician"); selection is kept.
 - **7a.** Selected technician fails QT-08 (wrong center or proficiency < 3, e.g. stale list) → system rejects with a validation error; no data is changed.
 - **8a.** Connection drops or save fails → full rollback (NFR5): no partial ticket update, no orphan log entry; UI keeps entered data and allows retry.
 

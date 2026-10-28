@@ -16,7 +16,7 @@ of this file with the next TD-xx codes.*
 - **Feedback:** The API Contract section and the directory tree belong in the repo (`api-contract.md`); they do not need to be in the PDF.
 - **Decision:** FIX
 - **Reason:** The mandatory PDF structure is exactly the 5 components + AI appendix, 6–9 pages total; the API Contract is not one of the 5 components and does not appear in Checklist 18. The track-spec requirement ("track-specific spec submitted with BT1") is already satisfied by `docs/api-contract.md` in the repo, per the Session 4 workflow (fill the track template and commit it to the repo).
-- **Impact:** Internal PDF reduced from 9 to 8 pages (API Contract page removed); `docs/api-contract.md` remains unchanged in the repo as the reference for BT2 implementation and BT3 tests; the directory tree appears only in README Section 4; no SRS content change.
+- **Impact:** API Contract page removed from the PDF (together with the table-of-contents resize this brought the document from 35 to 29 pages, see TD-03); `docs/api-contract.md` remains unchanged in the repo as the reference for BT2 implementation and BT3 tests; the directory tree appears only in README Section 4; no SRS content change.
 
 ### TD-03 Document length
 - **Feedback:** Document is 35 pages, too long versus the 6–9 page guideline.
@@ -50,11 +50,11 @@ of this file with the next TD-xx codes.*
 ### TD-07 Minimal demo authentication
 - **Feedback/Reason:** BT2 extension requires basic login, and QT-14 requires center scoping.
 - **Decision:** Implement minimal demo authentication for the prototype. The token carries `role` and `center_id`. This is not production authentication.
-- **Impact:** Adds auth endpoint or auth middleware later, README demo credentials, and center-scoped access control in services.
+- **Impact:** `POST /api/auth/login` (FR12/US14, TD-14), token dependencies in `src/security.py`, README demo credentials, and center-scoped access control in services.
 
 ### TD-08 Normalize tag/version references
 - **Feedback/Reason:** Official BT2 tag is `v0.2`. Previous references to `v0.5` were mistaken or should refer to the BT1 baseline.
-- **Decision:** BT1 baseline references use `v0.1`. BT2 submission tag uses `v0.2`. Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
+- **Decision:** BT2 submission tag uses `v0.2`. BT1 was submitted as a PDF and has no Git tag (correction, Session 12: an earlier version of this entry named a `v0.1` baseline tag that was never created). Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
 - **Impact:** README, SRS, API contract, and other docs only. No business logic changes.
 
 ## BT2 Implementation Alignments (Session 10-12)
@@ -168,3 +168,9 @@ Each entry: **Change** (what differs from BT1 / earlier BT2 design) · **Reason*
 - **Change:** `GET /api/technicians/{technician_id}/skills` returns `{ "technician_id", "items": [...] }` as written in API contract 3.11; it returned a bare array before.
 - **Reason:** Rubric criterion 3 — the implementation must match the BT1/BT2 contract.
 - **Impact:** `technician_skill_service.py`, `schemas/technician_skill.py`, `routes/technician_skills.py`, two tests.
+
+### TD-30 Consistency pass on the documentation
+- **Change:** Corrected statements that contradicted the code or each other: US1 AC3 / NFR3 (lists are filtered by the token's center; only direct record access returns 403), QT-04 working-day clause restored in the SRS, FR10 shown as API-only in the traceability matrix, API-contract validation table now lists error codes (the contract) instead of message wording, response time format `HH:MM:SS`, 3.2/3.3/3.6/3.8 error lists, use-case UC3 preconditions and reason length, BT1 architecture index names, BT1 file names in the AI disclosure, TD-02/TD-07/TD-08 wording, BUG-001 root cause (reproduced: collision on `ticket_status_log`, not `appointment`).
+- **Reason:** Rubric criterion 3 — documents must match the implementation; found in a document-versus-code review in Session 12.
+- **Impact:** `docs/` text and `.drawio` sources only; no code change.
+

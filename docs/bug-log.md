@@ -5,13 +5,13 @@ Template (course, 7 lines): **ID & severity** · **Found by** · **Symptom** · 
 Severity: Critical (main flow or grading check blocked) · Major (wrong result, workaround exists) · Minor.
 Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/<sha>`.
 
-### BUG-001 · Major — creating an appointment failed after seeding
-- **Found by:** manual API call (curl) during Session 8.
-- **Symptom:** `POST /api/appointments` returned 500; server log showed a unique violation on `appointment_pkey`.
-- **Reproduce:** fresh DB → migrate → seed (rows inserted with explicit ids 201–204) → create an appointment.
-- **Root cause:** inserting explicit ids does not advance the `BIGSERIAL` sequence, so the next generated id (1, 2, …) or a seeded id collided.
-- **Fix:** `setval()` every sequence to `MAX(id)` at the end of the seed (now `sync_sequences()` in `scripts/seed.py`).
-- **Commit & confirmation:** `7361e02`; re-seeded and created appointments repeatedly without error.
+### BUG-001 · Major — first assignment after seeding failed with a duplicate key
+- **Found by:** using the API after seeding (fix recorded in commit `7361e02`, "prevent unique violations"); reproduced again in Session 12 from the pre-fix seed.
+- **Symptom:** the first insert into `ticket_status_log` — i.e. the first assignment — failed: `duplicate key value violates unique constraint "ticket_status_log_pkey"`, `Key (log_id)=(1) already exists` (API answer: 500).
+- **Reproduce:** empty DB → migrate → run the seed of commit `7361e02~1` (status-log rows inserted with explicit ids 1–5) → insert a status-log row without an id.
+- **Root cause:** inserting explicit ids does not advance a `BIGSERIAL` sequence, so the next generated `log_id` (1) collided with a seeded row. Appointments did not fail only because their seeded ids (201–204) were above the sequence start.
+- **Fix:** `setval()` every sequence to `MAX(id)` after seeding (now `sync_sequences()` in `scripts/seed.py`).
+- **Commit & confirmation:** `7361e02`; with the current seed, assignments write status-log rows without error (`test_ticket_assignment_flow`, browser run).
 
 ### BUG-002 · Major — new appointments were saved as `DA_DAT`
 - **Found by:** review against SRS US5 AC1 / API contract 3.5.
@@ -30,7 +30,7 @@ Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commi
 - **Commit & confirmation:** `da85250`, `30fe3b0`; with PostgreSQL stopped and no `.env`: all tests pass.
 
 ### BUG-004 · Critical — M2 assignment screen was blank
-- **Found by:** manual UI check after the API response change of TD-13.
+- **Found by:** repository review and browser run in Session 12 (the API shape had changed in TD-13).
 - **Symptom:** clicking "Phân công" opened M2 with only the title — no technician table and no empty-state message, so no ticket could be assigned from the UI.
 - **Reproduce:** log in → M1 → "Phân công" on a ticket that has qualified technicians.
 - **Root cause:** the API now returns `{ "ticket_id", "items": [...] }`, but `M2Assignment.jsx` stored the whole object and tested `techs.length` (undefined), so neither the table nor the empty branch rendered.
@@ -38,7 +38,7 @@ Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commi
 - **Commit & confirmation:** `a38d891`; end-to-end browser run: M2 lists 4 technicians, assignment succeeds.
 
 ### BUG-005 · Major — wrong password reloaded the login page silently
-- **Found by:** manual UI check (invalid-data case).
+- **Found by:** browser run of the invalid-data case in Session 12.
 - **Symptom:** after a wrong password the page reloaded and no error was shown.
 - **Reproduce:** login with `manager1` / any wrong password.
 - **Root cause:** the API client treated every 401 as "session expired" (clear token + `window.location.reload()`), including the 401 `invalid_credentials` of the login call itself.

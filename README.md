@@ -143,5 +143,5 @@ JavaScript); data fields keep the exact ERD column names from the SRS glossary
 - [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
 - [ ] BT3 — test plan/report and packaging (tag `v1.0`)
 
-Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-29) ·
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-30) ·
 bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.

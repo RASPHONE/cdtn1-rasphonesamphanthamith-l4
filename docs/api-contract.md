@@ -9,17 +9,21 @@ Companion artifacts: `docs/srs.md` (v0.6), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sq
 - Base path: `/api` (local: `http://localhost:8000/api`).
 - Format: JSON only; field names in `snake_case`, identical to ERD column names.
 - Timestamps ISO 8601 (`received_at`, `due_date`); dates `YYYY-MM-DD` (`ngay_hen`);
-  times `HH:MM` (`gio_bat_dau`, `gio_ket_thuc`).
+  times: requests accept `HH:MM`, responses return `HH:MM:SS` (`gio_bat_dau`, `gio_ket_thuc`).
 - Pagination: query `page` (default 1), `page_size` (default 20, max 100);
   responses carry `page`, `page_size`, `total`.
-- Authentication: Bearer token (infrastructure, out of scope). The caller's
-  `center_id` is derived server-side from the token and NEVER accepted from the
-  client (QT-14, NFR3).
+- Authentication: Bearer JWT from the demo login (endpoint 16; a production identity
+  provider is out of scope). The caller's `center_id` and `role` are derived
+  server-side from the token and NEVER accepted from the client (QT-14, NFR3):
+  list endpoints are filtered to the caller's center; requests addressing a record
+  of another center return 403.
 - Phone numbers: full for Center Manager / Board of Directors; masked
   `090****567` for every other role (QT-15). Masking is applied in the Service
   layer before the response leaves.
-- Error envelope: `{ "error": "<machine_code>", "message": "<human text>" }`,
-  plus optional `details` (list of `{field, message}`), `conflicts` (409) or
+- Error envelope: `{ "error": "<machine_code>", "message": "<human text>" }`.
+  The `error` code is the contract; `message` is explanatory English text and may be
+  reworded. The UI shows its own Vietnamese text per code.
+  Optional extras: `details` (list of `{field, message}`), `conflicts` (409) or
   `request_id` (500, matches the server log line). Stack traces, SQL and driver
   messages are never returned.
 - Status codes: `200` read/update ok · `201` created · `400` malformed or missing
@@ -94,15 +98,17 @@ sorted `due_date` ASC (FR1).
 ```
 `workload` is computed at query time (SRS terminology: assigned tickets in
 `DA_PHAN_CONG` / `DANG_XU_LY` / `CHO_LINH_KIEN`); it is never stored.
-- 403 `cross_center_access` · 404 `ticket_not_found`.
+- 403 `cross_center_access` · 404 `ticket_not_found`
+- 422 `ticket_not_assignable` — not a warranty ticket, or ticket closed (`HOAN_TAT` / `DA_DONG` / `DA_HUY`).
 
 ### 3.3 POST /api/tickets/{ticket_id}/assignment  (first assignment)
 Request: `{ "technician_id": 7, "reason": null }` (`reason` ignored here).
-Ticket must be assignable (status not `DA_DONG` / `DA_HUY`, QT-06).
+Ticket must be a warranty ticket in status `MOI` with no technician yet (QT-06, QT-07);
+the UPDATE only matches such a row, so a concurrent assignment loses with 422.
 - 200: `{ "ticket_id": 123, "technician_id": 7, "status": "DA_PHAN_CONG", "log_id": 4501 }`
 - 400 `bad_request` · 403 `cross_center_access` · 404 `ticket_not_found`
 - 422 `technician_not_qualified` — QT-08 (same center + proficiency ≥ 3).
-- 422 `ticket_not_assignable` — QT-06 lifecycle.
+- 422 `ticket_not_assignable` — not `MOI`, already assigned (also by a concurrent request), not warranty, or closed.
 
 ### 3.4 PATCH /api/tickets/{ticket_id}/assignment  (reassignment)
 Request: `{ "technician_id": 9, "reason": "KTV nghi phép dài hạn" }` — `reason`
@@ -139,8 +145,9 @@ Request: optional subset `{ "loai", "ngay_hen", "gio_bat_dau", "gio_ket_thuc", "
 In v0.2 `trang_thai` may **only** be set to `DA_XAC_NHAN` (confirm); cancellation
 statuses (`KHACH_HUY`, `KHACH_KHONG_DEN`) are deferred with US10.
 Conflict check excludes the appointment being updated.
-- 200 updated object · 409 `appointment_conflict` · 422 (same codes as 3.5)
-  · 403 · 404 `appointment_not_found` · 400.
+- 200 updated object · 409 `appointment_conflict` (with `conflicts`) · 422 (same codes as 3.5)
+  · 422 `appointment_completed_cannot_update` (`trang_thai = HOAN_TAT`)
+  · 403 · 404 `appointment_not_found` (missing or soft-deleted) · 400.
 
 ### 3.7 GET /api/appointments/conflicts
 Query: `technician_id`, `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc`,
@@ -164,13 +171,14 @@ Server-side center scoping applies from the caller token (QT-14).
 - 200:
 ```json
 { "page": 1, "page_size": 20, "total": 12,
-  "items": [ { "appointment_id": 88, "ticket_id": 123, "technician_id": 7,
+  "items": [ { "appointment_id": 88, "ticket_id": 123, "ticket_code": "BH-000123/2026",
+               "technician_id": 7, "technician_ho_ten": "Le Van Cuong",
                "center_id": 2, "loai": "NHAN_MAY", "trang_thai": "DA_XAC_NHAN",
-               "ngay_hen": "2026-09-15", "gio_bat_dau": "08:00",
-               "gio_ket_thuc": "10:00", "is_deleted": false } ] }
+               "ngay_hen": "2026-09-15", "gio_bat_dau": "08:00:00",
+               "gio_ket_thuc": "10:00:00", "is_deleted": false } ] }
 ```
 - 400 `bad_request` — invalid pagination/filter (`trang_thai` must be one of CON-03).
-- 403 `cross_center_access` — QT-14.
+- Only the caller's center is listed (QT-14); there is no center parameter, so no 403 here.
 
 ### 3.9 GET /api/appointments/{appointment_id}
 
@@ -289,31 +297,36 @@ Infrastructure check, no authentication.
 
 ## 4. Validation table
 
-| Endpoint | Field | Required | Type | Rule | Error (code) |
+Format errors are rejected by the request schemas with `400 bad_request` and a
+`details` entry naming the field; business rules are checked in the service layer.
+
+| Endpoint | Field | Required | Type | Rule | Error code (HTTP) |
 |---|---|---|---|---|---|
-| 3.3 / 3.4 | `technician_id` | yes | int | exists; QT-08 vs ticket | "Technician not qualified for this category/center (QT-08)." (422) |
-| 3.4 | `reason` | yes (reassign) | string 5–255 after trim | omitted, blank, < 5 or > 255 | "Reason is required when changing technician (5-255 characters)." (422) |
-| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.2 | "On-site check appointments are deferred (v0.2)." (422) |
-| 3.5 / 3.6 | `ngay_hen` | yes | date | (`ngay_hen` + `gio_bat_dau`) > now | "Appointment time must be in the future." (422) |
-| 3.5 / 3.6 | `gio_bat_dau`, `gio_ket_thuc` | yes | HH:MM | CON-01 end > start | "End time must be after start time." (422) |
-| 3.1 | `category_id`, `priority` | no | int / enum | valid id / `CAO|TRUNG_BINH|THAP` | "Invalid filter value." (400) |
-| 3.1 / 3.7 | `page`, `page_size` | no | int | ≥ 1 / 1–100 | "Invalid pagination parameters." (400) |
-| 3.10 | `appointment_id` | yes | int | exists, not soft-deleted, not completed | "Completed appointment cannot be deleted." (422) |
-| 3.13 | `category_id` | yes | int | active issue category | "Issue category not found or inactive." (404/422) |
-| 3.13 / 3.14 | `proficiency` | yes | int | 1–5 | "Proficiency must be between 1 and 5." (422) |
-| 3.13 | `(technician_id, category_id)` | — | composite | unique | "Skill already exists for this technician/category." (409) |
-| 3.16 | `username`, `password` | yes | string | valid demo user | "Invalid credentials." (401) |
-| 3.7 | `technician_id`, `ngay_hen`, `gio_bat_dau`, `gio_ket_thuc` | yes | int / date / time | technician in caller's center; end > start | 400 / 403 / 422 |
-| 3.8 | `trang_thai` | no | enum | CON-03 values | "Invalid filter value." (400) |
+| 3.3 / 3.4 | `technician_id` | yes | int | exists, active, same center, proficiency ≥ 3 (QT-08) | `technician_not_found` (404) · `technician_not_qualified` (422) |
+| 3.4 | `reason` | yes (reassign) | string 5–255 after trim | omitted, blank, < 5 or > 255 | `reason_required` (422) |
+| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.2 | `bad_request` (400) unknown value · `appointment_type_deferred` (422) `KIEM_TRA_TAI_CHO` |
+| 3.5 / 3.6 | `ngay_hen` + `gio_bat_dau` | yes | date + time | strictly after now (APP_TIMEZONE) | `appointment_in_past` (422) |
+| 3.5 / 3.6 / 3.7 | `gio_bat_dau`, `gio_ket_thuc` | yes | time | CON-01 end > start | `invalid_time_range` (422) |
+| 3.1 | `category_id`, `priority` | no | int ≥ 1 / enum `CAO\|TRUNG_BINH\|THAP` | valid value | `bad_request` (400) |
+| 3.1 / 3.8 | `page`, `page_size` | no | int | ≥ 1 / 1–100 | `bad_request` (400) |
+| 3.8 | `trang_thai` | no | enum | CON-03 values | `bad_request` (400) |
+| 3.7 | `technician_id` | yes | int | exists, in caller's center | `technician_not_found` (404) · `cross_center_access` (403) |
+| 3.10 | `appointment_id` | yes | int | exists, not soft-deleted, not completed | `appointment_not_found` (404) · `appointment_completed_cannot_delete` (422) |
+| 3.13 | `category_id` | yes | int | exists and active | `category_not_found` (404) · `category_inactive` (422) |
+| 3.13 / 3.14 | `proficiency` | yes | int | 1–5 (CON-04) | `proficiency_out_of_range` (422) |
+| 3.13 | `(technician_id, category_id)` | — | composite | unique | `skill_already_exists` (409) |
+| 3.16 | `username`, `password` | yes | string | valid demo user | `invalid_credentials` (401) |
 
 ## 5. Notes
 
 - Business rules appear as 422/409 codes and validation rows (QT-06, QT-07,
   QT-08, QT-14, QT-15, CON-01), so BT3 test cases trace FR → US → AC → TC
   including exception paths.
-- Concurrency: conflict detection is a service-layer blocking check (SRS §5
-  note 1); a simultaneous double-submit is theoretically possible and is
-  accepted in v0.2 (one manager per center).
+- Concurrency: appointment conflict detection is a service-layer check (SRS §5
+  note 1); two simultaneous appointment submits for the same slot are
+  theoretically possible and accepted in v0.2 (one manager per center).
+  Assignment is protected: the guarded UPDATE lets only one concurrent request
+  win (SRS §5 note 9).
 
 - **BT2 Scope Adjustments:** 
   - `technician_skill` CRUD (`POST/PATCH/DELETE /api/technicians/{id}/skills`) was added in BT2 to satisfy the requirement that at least two entities support full CRUD. In BT1, this was assumed to be imported master data. This is an API-only admin support feature; no new UI screen is introduced.
