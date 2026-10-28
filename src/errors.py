@@ -1,22 +1,25 @@
 class AppError(Exception):
     """
-    Application/business error.
+    Application/business error carrying a machine-readable code.
 
-    This class must NOT know HTTP status codes.
-    HTTP mapping happens in the presentation layer / error handler.
+    This class must NOT know HTTP status codes: services raise it, and the
+    presentation layer (src/main.py) translates `code` to HTTP via HTTP_BY_CODE.
+
+    - details: optional list of {field, message} for validation errors.
+    - extra:   optional dict merged into the JSON body (e.g. {"conflicts": [...]}).
     """
 
-    def __init__(self, code: str, message: str, details=None):
+    def __init__(self, code: str, message: str, details=None, extra=None):
         self.code = code
         self.message = message
         self.details = details
+        self.extra = extra
         super().__init__(message)
 
 
 HTTP_BY_CODE = {
     # 400 - malformed or missing request data
     "bad_request": 400,
-    "invalid_pagination": 400,
 
     # 401 - unauthorized
     "unauthorized": 401,
@@ -47,5 +50,8 @@ HTTP_BY_CODE = {
     "appointment_completed_cannot_update": 422,
     "proficiency_out_of_range": 422,
     "category_inactive": 422,
-    "ticket_not_found_or_unassigned": 422,
+
+    # 500 / 503 - server side
+    "internal_error": 500,
+    "database_unavailable": 503,
 }
