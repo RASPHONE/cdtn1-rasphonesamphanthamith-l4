@@ -3,21 +3,29 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.db import get_connection
 
+ACTIVE_STATUSES = ("DA_DAT", "DA_XAC_NHAN")
+
 
 class PostgresAppointmentRepository:
     BASE_SELECT = """
     SELECT
-        appointment_id,
-        ticket_id,
-        technician_id,
-        center_id,
-        loai,
-        trang_thai,
-        ngay_hen,
-        gio_bat_dau,
-        gio_ket_thuc,
-        is_deleted
-    FROM appointment
+        a.appointment_id,
+        a.ticket_id,
+        t.ticket_code,
+        a.technician_id,
+        tech.ho_ten AS technician_ho_ten,
+        a.center_id,
+        a.loai,
+        a.trang_thai,
+        a.ngay_hen,
+        a.gio_bat_dau,
+        a.gio_ket_thuc,
+        a.is_deleted
+    FROM appointment a
+    JOIN ticket t
+      ON t.ticket_id = a.ticket_id
+    JOIN technician tech
+      ON tech.technician_id = a.technician_id
     """
 
     def list(
@@ -32,40 +40,41 @@ class PostgresAppointmentRepository:
         trang_thai: Optional[str] = None,
         include_deleted: bool = False,
     ) -> Tuple[List[Dict[str, Any]], int]:
-        where = ["center_id = %s"]
+        where = ["a.center_id = %s"]
         params: List[Any] = [center_id]
 
         if not include_deleted:
-            where.append("is_deleted = FALSE")
+            where.append("a.is_deleted = FALSE")
 
         if technician_id is not None:
-            where.append("technician_id = %s")
+            where.append("a.technician_id = %s")
             params.append(technician_id)
 
         if ticket_id is not None:
-            where.append("ticket_id = %s")
+            where.append("a.ticket_id = %s")
             params.append(ticket_id)
 
         if ngay_hen is not None:
-            where.append("ngay_hen = %s")
+            where.append("a.ngay_hen = %s")
             params.append(ngay_hen)
 
         if trang_thai is not None:
-            where.append("trang_thai = %s")
+            where.append("a.trang_thai = %s")
             params.append(trang_thai)
 
         where_sql = " AND ".join(where)
 
         count_sql = f"""
         SELECT COUNT(*) AS total
-        FROM appointment
+        FROM appointment a
         WHERE {where_sql}
         """
 
+        # Newest dates first so upcoming and recent appointments are on page 1.
         data_sql = f"""
         {self.BASE_SELECT}
         WHERE {where_sql}
-        ORDER BY ngay_hen, gio_bat_dau
+        ORDER BY a.ngay_hen DESC, a.gio_bat_dau DESC
         LIMIT %s OFFSET %s
         """
 
@@ -87,18 +96,21 @@ class PostgresAppointmentRepository:
         appointment_id: int,
         include_deleted: bool = False,
     ) -> Optional[Dict[str, Any]]:
+        with get_connection() as conn:
+            return self._get(conn, appointment_id, include_deleted)
+
+    def _get(self, conn, appointment_id: int, include_deleted: bool) -> Optional[Dict[str, Any]]:
         sql = f"""
         {self.BASE_SELECT}
-        WHERE appointment_id = %s
+        WHERE a.appointment_id = %s
         """
 
         if not include_deleted:
-            sql += " AND is_deleted = FALSE"
+            sql += " AND a.is_deleted = FALSE"
 
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(sql, (appointment_id,))
-                return cur.fetchone()
+        with conn.cursor() as cur:
+            cur.execute(sql, (appointment_id,))
+            return cur.fetchone()
 
     def create(self, data: Dict[str, Any]) -> Dict[str, Any]:
         sql = """
@@ -114,7 +126,7 @@ class PostgresAppointmentRepository:
             is_deleted
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-        RETURNING *
+        RETURNING appointment_id
         """
 
         params = (
@@ -131,7 +143,8 @@ class PostgresAppointmentRepository:
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, params)
-                return cur.fetchone()
+                appointment_id = cur.fetchone()["appointment_id"]
+            return self._get(conn, appointment_id, include_deleted=False)
 
     def update(
         self,
@@ -162,7 +175,6 @@ class PostgresAppointmentRepository:
         SET {", ".join(set_parts)}
         WHERE appointment_id = %s
           AND is_deleted = FALSE
-        RETURNING *
         """
 
         params.append(appointment_id)
@@ -170,7 +182,9 @@ class PostgresAppointmentRepository:
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, params)
-                return cur.fetchone()
+                if cur.rowcount == 0:
+                    return None
+            return self._get(conn, appointment_id, include_deleted=False)
 
     def soft_delete(self, appointment_id: int) -> Optional[Dict[str, Any]]:
         sql = """
@@ -178,7 +192,7 @@ class PostgresAppointmentRepository:
         SET is_deleted = TRUE
         WHERE appointment_id = %s
           AND is_deleted = FALSE
-        RETURNING *
+        RETURNING appointment_id, is_deleted
         """
 
         with get_connection() as conn:
@@ -186,7 +200,7 @@ class PostgresAppointmentRepository:
                 cur.execute(sql, (appointment_id,))
                 return cur.fetchone()
 
-    def has_conflict(
+    def find_conflicts(
         self,
         *,
         technician_id: int,
@@ -194,14 +208,22 @@ class PostgresAppointmentRepository:
         gio_bat_dau: time,
         gio_ket_thuc: time,
         exclude_appointment_id: Optional[int] = None,
-    ) -> bool:
+    ) -> List[Dict[str, Any]]:
+        """Active, non-deleted appointments of the technician on the same day
+        whose time interval overlaps [gio_bat_dau, gio_ket_thuc)."""
         sql = """
-        SELECT 1
+        SELECT
+            appointment_id,
+            ticket_id,
+            ngay_hen,
+            gio_bat_dau,
+            gio_ket_thuc,
+            trang_thai
         FROM appointment
         WHERE technician_id = %s
           AND ngay_hen = %s
           AND is_deleted = FALSE
-          AND trang_thai IN ('DA_DAT', 'DA_XAC_NHAN')
+          AND trang_thai = ANY(%s)
           AND gio_bat_dau < %s
           AND gio_ket_thuc > %s
         """
@@ -209,6 +231,7 @@ class PostgresAppointmentRepository:
         params: List[Any] = [
             technician_id,
             ngay_hen,
+            list(ACTIVE_STATUSES),
             gio_ket_thuc,
             gio_bat_dau,
         ]
@@ -217,9 +240,9 @@ class PostgresAppointmentRepository:
             sql += " AND appointment_id <> %s"
             params.append(exclude_appointment_id)
 
-        sql += " LIMIT 1"
+        sql += " ORDER BY gio_bat_dau"
 
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, params)
-                return cur.fetchone() is not None
+                return cur.fetchall()

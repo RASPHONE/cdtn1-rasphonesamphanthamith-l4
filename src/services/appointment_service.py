@@ -1,17 +1,28 @@
 from datetime import date, datetime, time
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List
 
 from src.errors import AppError
 from src.schemas.appointment import AppointmentCreate, AppointmentUpdate
 
 
 class AppointmentService:
-    ALLOWED_LOAI = {"GIAO_MAY", "NHAN_MAY"}
+    """UC4: create / read / update / soft-delete appointments (FR6, FR7, FR11, QT-14)."""
+
+    ALLOWED_LOAI = {"GIAO_MAY", "NHAN_MAY"}            # v0.2: KIEM_TRA_TAI_CHO deferred
     CLOSED_TICKET_STATUSES = {"HOAN_TAT", "DA_DONG", "DA_HUY"}
 
-    def __init__(self, appointment_repository, ticket_repository):
+    def __init__(
+        self,
+        appointment_repository,
+        ticket_repository,
+        technician_repository,
+        now_provider: Callable[[], datetime] = datetime.now,
+    ):
         self.appointment_repo = appointment_repository
         self.ticket_repo = ticket_repository
+        self.technician_repo = technician_repository
+        # Injected clock (business timezone in production, fixed time in tests).
+        self.now = now_provider
 
     def list_appointments(
         self,
@@ -56,6 +67,41 @@ class AppointmentService:
             include_deleted=include_deleted,
         )
 
+    def check_conflicts(
+        self,
+        *,
+        center_id: int,
+        technician_id: int,
+        ngay_hen: date,
+        gio_bat_dau: time,
+        gio_ket_thuc: time,
+        exclude_appointment_id: int | None = None,
+    ) -> Dict[str, Any]:
+        """FR7 pre-check used by M3 before saving (UC4 step 5).
+        The save-time check in create/update remains authoritative."""
+        technician = self.technician_repo.get_by_id(technician_id)
+
+        if not technician:
+            raise AppError("technician_not_found", "Technician not found.")
+
+        if technician["center_id"] != center_id:
+            raise AppError(
+                "cross_center_access",
+                "You cannot access another center's technician.",
+            )
+
+        self._validate_time_range(gio_bat_dau, gio_ket_thuc)
+
+        return {
+            "conflicts": self.appointment_repo.find_conflicts(
+                technician_id=technician_id,
+                ngay_hen=ngay_hen,
+                gio_bat_dau=gio_bat_dau,
+                gio_ket_thuc=gio_ket_thuc,
+                exclude_appointment_id=exclude_appointment_id,
+            )
+        }
+
     def create_appointment(
         self,
         *,
@@ -94,17 +140,12 @@ class AppointmentService:
 
         self._validate_time_range(payload.gio_bat_dau, payload.gio_ket_thuc)
         self._validate_future(payload.ngay_hen, payload.gio_bat_dau)
-
-        if self.appointment_repo.has_conflict(
+        self._ensure_no_conflict(
             technician_id=ticket["technician_id"],
             ngay_hen=payload.ngay_hen,
             gio_bat_dau=payload.gio_bat_dau,
             gio_ket_thuc=payload.gio_ket_thuc,
-        ):
-            raise AppError(
-                "appointment_conflict",
-                "The technician already has an overlapping active appointment.",
-            )
+        )
 
         data = {
             "ticket_id": payload.ticket_id,
@@ -149,43 +190,31 @@ class AppointmentService:
                 "Only GIAO_MAY and NHAN_MAY appointments are enabled in BT2.",
             )
 
-        new_ngay_hen = fields.get("ngay_hen", existing["ngay_hen"])
-        new_gio_bat_dau = fields.get("gio_bat_dau", existing["gio_bat_dau"])
-        new_gio_ket_thuc = fields.get("gio_ket_thuc", existing["gio_ket_thuc"])
+        new_ngay_hen = fields.get("ngay_hen") or existing["ngay_hen"]
+        new_gio_bat_dau = fields.get("gio_bat_dau") or existing["gio_bat_dau"]
+        new_gio_ket_thuc = fields.get("gio_ket_thuc") or existing["gio_ket_thuc"]
 
         self._validate_time_range(new_gio_bat_dau, new_gio_ket_thuc)
 
         schedule_changed = any(
-            field in fields
+            fields.get(field) is not None
             for field in ("ngay_hen", "gio_bat_dau", "gio_ket_thuc")
         )
 
         if schedule_changed:
             self._validate_future(new_ngay_hen, new_gio_bat_dau)
-
-            if self.appointment_repo.has_conflict(
+            self._ensure_no_conflict(
                 technician_id=existing["technician_id"],
                 ngay_hen=new_ngay_hen,
                 gio_bat_dau=new_gio_bat_dau,
                 gio_ket_thuc=new_gio_ket_thuc,
                 exclude_appointment_id=appointment_id,
-            ):
-                raise AppError(
-                    "appointment_conflict",
-                    "The technician already has an overlapping active appointment.",
-                )
+            )
 
         update_fields = {
             key: value
             for key, value in fields.items()
-            if key in
-            {
-                "loai",
-                "trang_thai",
-                "ngay_hen",
-                "gio_bat_dau",
-                "gio_ket_thuc",
-            }
+            if key in {"loai", "trang_thai", "ngay_hen", "gio_bat_dau", "gio_ket_thuc"}
             and value is not None
         }
 
@@ -233,6 +262,33 @@ class AppointmentService:
             "is_deleted": True,
         }
 
+    def _ensure_no_conflict(
+        self,
+        *,
+        technician_id: int,
+        ngay_hen: date,
+        gio_bat_dau: time,
+        gio_ket_thuc: time,
+        exclude_appointment_id: int | None = None,
+    ) -> None:
+        """FR7: block saving when the technician already has an overlapping
+        active appointment. Touching intervals (10:00-11:00 after 09:00-10:00)
+        are allowed."""
+        conflicts: List[Dict[str, Any]] = self.appointment_repo.find_conflicts(
+            technician_id=technician_id,
+            ngay_hen=ngay_hen,
+            gio_bat_dau=gio_bat_dau,
+            gio_ket_thuc=gio_ket_thuc,
+            exclude_appointment_id=exclude_appointment_id,
+        )
+
+        if conflicts:
+            raise AppError(
+                "appointment_conflict",
+                "The technician already has an overlapping active appointment.",
+                extra={"conflicts": conflicts},
+            )
+
     def _get_owned_appointment(
         self,
         *,
@@ -260,6 +316,7 @@ class AppointmentService:
         return appointment
 
     def _validate_time_range(self, gio_bat_dau: time, gio_ket_thuc: time) -> None:
+        """CON-01: end time must be after start time."""
         if gio_ket_thuc <= gio_bat_dau:
             raise AppError(
                 "invalid_time_range",
@@ -267,9 +324,10 @@ class AppointmentService:
             )
 
     def _validate_future(self, ngay_hen: date, gio_bat_dau: time) -> None:
+        """US5 AC2: the appointment start must be strictly after 'now'."""
         start_dt = datetime.combine(ngay_hen, gio_bat_dau)
 
-        if start_dt <= datetime.now():
+        if start_dt <= self.now():
             raise AppError(
                 "appointment_in_past",
                 "Appointment time must be in the future.",
