@@ -1,0 +1,20 @@
+%% As-built architecture of the L4 prototype (BT2, tag v0.2).
+%% Render: mmdc -i docs/diagrams/architecture-thuc-te.mmd -o docs/exports/Architecture_As_Built.png -w 1800 -b white
+flowchart LR
+  FE["<b>Presentation · browser</b><br/><i>frontend/src</i><br/>────────────<br/>pages/UnassignedTicketsPage (M1)<br/>pages/AssignmentPage (M2)<br/>pages/AppointmentsPage (M3)<br/>pages/LoginPage<br/>components/DataState<br/>(loading · empty · error)<br/>────────────<br/>api/client.js + *.api.js<br/>= the only fetch() calls"]
+
+  L1["<b>Layer 1 · HTTP</b><br/><i>src/routes · src/schemas</i><br/>────────────<br/>tickets · appointments<br/>technician_skills · issue_categories<br/>auth · health<br/>────────────<br/>schemas = format validation (400)<br/>security.py: JWT → center_id, role<br/>main.py: AppError → HTTP_BY_CODE<br/>503 database · 500 + request_id"]
+
+  L2["<b>Layer 2 · Business rules</b><br/><i>src/services</i> (no HTTP, no SQL)<br/>────────────<br/>TicketAssignmentService<br/>QT-07 · QT-08 · QT-14 · FR1–FR5 · FR8<br/>AppointmentService<br/>FR6 · FR7 · FR11 · CON-01<br/>TechnicianSkillService · FR10<br/>phone_masking · QT-15 / NFR4<br/>AuthService · IssueCategoryService"]
+
+  L3["<b>Layer 3 · Data access</b><br/><i>src/repositories</i> (SQL, no rules)<br/>────────────<br/>PostgresTicketRepository<br/>PostgresTechnicianRepository<br/>PostgresTechnicianSkillRepository<br/>PostgresIssueCategoryRepository<br/>PostgresAppointmentRepository<br/>PostgresTicketStatusLogRepository<br/>transaction.py = unit of work (NFR5)"]
+
+  DB[("<b>PostgreSQL 16</b><br/>6 tables<br/>db/migrations 001–002<br/>seed: data/sample")]
+
+  T["<b>tests/</b> (pytest)<br/>fakes.py replaces Layer 3<br/>→ no database needed"]
+
+  FE -- "HTTP JSON<br/>Bearer token" --> L1
+  L1 -- "calls" --> L2
+  L2 -- "calls" --> L3
+  L3 -- "psycopg 3" --> DB
+  T -. "injects fakes" .-> L2

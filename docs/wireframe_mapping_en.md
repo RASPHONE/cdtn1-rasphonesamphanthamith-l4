@@ -52,3 +52,14 @@ No `location`, no appointment `note/ghi_chu`, no `KIEM_TRA_TAI_CHO` option in v0
 
 ## 5. BT2 Scope Reconciliation: technician_skill
 In BT1, `technician_skill` was documented as imported master data with no admin screen in v0.2 (NFR7 insert-only). For BT2, API-level CRUD endpoints were added to satisfy the BT2 requirement that at least two entities support full CRUD operations. This serves as a backend support API for the qualification matrix (QT-08). **No new customer-facing or manager-facing screen is introduced**, so the "no admin screen in v0.2" wireframe constraint remains true.
+
+## 6. BT2 implementation: wireframe → code → API
+
+| Screen | Component | Wireframe element → implementation | API calls |
+|---|---|---|---|
+| Login | `frontend/src/pages/LoginPage.jsx` | Demo login (US14); wrong password shows "Sai tên đăng nhập hoặc mật khẩu." | `POST /api/auth/login` |
+| M1 | `frontend/src/pages/UnassignedTicketsPage.jsx` | Filter dropdowns + [Apply filters] (category list read from the database, NFR7); all wireframe columns; due date with "time left / overdue" (SLA reference); 20 rows/page; empty-state strip (US1 AC2, [Assign] hidden) **and** a separate "no ticket matches the filter" state with [Clear filters]; generic error area with [Retry] | `GET /api/issue-categories`, `GET /api/tickets/unassigned` |
+| M2 | `frontend/src/pages/AssignmentPage.jsx` | Ticket summary (read-only); radio single-select (QT-07); workload column with the group average as reference; reason input shown when the ticket already has a technician (UC3-5a, 5–255 chars); UC3-3a strip with [Confirm] disabled; validation/rollback area shows the API message; [Schedule appointment → M3] enabled once assigned | `GET /api/tickets/{id}`, `GET /api/tickets/{id}/qualified-technicians`, `POST`/`PATCH /api/tickets/{id}/assignment` |
+| M3 | `frontend/src/pages/AppointmentsPage.jsx` | Read-only summary (ticket code, technician, center); type dropdown (GIAO_MAY / NHAN_MAY only); date/time inputs with UC4-4a/4b/4c messages; conflict warning banner that blocks saving (UC4-5a) fed by the pre-check and by the 409 body; [Save & confirm] → `DA_XAC_NHAN`. BT2 additions for FR11/US13: appointment list with date/status filters, [Edit] and two-step [Delete] (soft delete), disabled for completed appointments | `GET /api/tickets/{id}`, `GET /api/appointments/conflicts`, `POST`/`PATCH`/`DELETE /api/appointments…`, `GET /api/appointments` |
+
+All screens share `components/DataState.jsx` for the loading / empty / error states, and every call goes through `frontend/src/api/`.

@@ -1,5 +1,8 @@
 # `docs/architecture_l4_en.md` — Architecture decisions (L4, v0.2)
 
+> **BT1 design (planned).** The architecture actually implemented at tag `v0.2` is in
+> `docs/architecture-thuc-te.md`; differences are listed in `docs/thay-doi-thiet-ke.md` (TD-16).
+
 Pattern: **Layered (4 layers)** as the frame, **MVC** inside the Presentation layer,
 **Repository** for data access. Diagram: `docs/architecture_l4_en.drawio`.
 
@@ -39,6 +42,6 @@ warranty-l4/
 │   ├── domain/            Ticket, Appointment, eligibility rules as pure functions
 │   └── repositories/      interfaces + Pg* implementations + Mem* for tests
 ├── db/schema.sql          layer 4 (DDL skeleton)
-└── docs/                  srs_en.md, usecase_l4.drawio, architecture_l4.drawio,
-                           erd_l4.drawio, api_contract.md, ai-disclosure.md
+└── docs/                  srs.md, usecase_l4.drawio, architecture_l4.drawio,
+                           erd_l4.drawio, api-contract.md, ai-disclosure.md
 ```

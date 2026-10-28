@@ -1,8 +1,8 @@
-# `docs/srs_en.md` — Software Requirements Specification (L4)
+# `docs/srs.md` — Software Requirements Specification (L4)
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.5
+- **Version:** v0.6
 - **BT2 target tag:** v0.2
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
@@ -69,18 +69,21 @@ This table is the single source of truth for diagrams, wireframes, DDL, and API 
 
 ### 1.5 Data source and working subset
 
-L4 depends on tickets created by L2. For the prototype, L4 works with a filtered subset of the case study dataset:
+L4 depends on tickets created by L2. The prototype works with a small, reproducible
+sample taken from the course dataset (full commands in README section 7):
 
-- base dataset seed: `20260901`;
-- appointment fixtures generated separately;
-- recommended appointment generation command:
+| Step | Command | Seed |
+|---|---|---|
+| Base dataset (16 files, 187,650 rows) | `python tools/gen_dataset.py data/raw` | `20260901` |
+| L4 appointments | `python tools/gen_sample.py --entity appointment --rows 1200 --seed 42 --link data/raw/tickets_history.csv --out data/raw/appointments.csv` | `42` |
+| L4 sample (`data/sample/`, committed) | `python scripts/build_sample.py` | `42` |
 
-```bash
-python tools/gen_sample.py --entity appointment --rows 1200 --seed 42 \
-  --link tickets_history.csv --out appointments.csv
-```
-
-The estimated **~40,200 records** refer to a filtered L4 working subset, not the full 187,650-row case study dataset. The subset includes warranty tickets relevant to assignment, their related status-log records, generated appointment records, and the master data needed for technician qualification and scheduling.
+The committed sample (`data/sample/`, about 2,100 rows) contains: all 6 issue categories,
+38 technicians and 159 skills; the 427 open tickets of centers 1–2 (they give technicians
+a real workload, FR8) with their 1,330 status-log rows; 60 generated unassigned `MOI`
+tickets (the dataset contains no `MOI` ticket, so FR1 would otherwise be empty); and
+74 generated appointments whose technician and center are taken from their ticket.
+`data/raw/` (full dataset) is not committed.
 
 ---
 
@@ -254,6 +257,9 @@ Role permissions:
 5. **`ticket.category_id` is NOT NULL.** L2 classifies the issue category before L4 consumes the ticket; eligibility (QT-08) cannot be evaluated without it. Unclassified tickets never enter the L4 queue.
 6. **Appointment soft delete.** `appointment.is_deleted` marks an appointment as deleted while preserving the row. Default appointment reads and FR7 conflict checks filter `is_deleted = FALSE`. Completed appointments (`trang_thai = HOAN_TAT`) cannot be soft-deleted in the BT2 prototype.
 7. **Technician skill delete.** Deleting a `technician_skill` row removes the technician’s eligibility for that issue category. This table is configuration/support data for QT-08 and is not covered by QT-13 hard-delete protection.
+8. **Customer snapshot fixture.** `tickets_history.csv` only has `customer_id`, and `customers_raw.csv` cannot be joined to it, so `scripts/build_sample.py` generates `customer_name` / `customer_phone` with a fixed seed (42).
+9. **Concurrent assignment.** The assignment UPDATE only matches a ticket that is still unassigned (reassignment: still held by the technician the manager saw). If two managers submit at the same time, the second receives `ticket_not_assignable` and no log row is written (QT-07, NFR5).
+10. **Business clock.** "Appointment must be in the future" (US5 AC2) is evaluated in `APP_TIMEZONE` (default `Asia/Ho_Chi_Minh`), independent of the server's timezone.
 
 ---
 
@@ -311,3 +317,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.4 | Post-BT1 (Session 8) | NFR4 threshold made measurable (100% mask format) per feedback TD-01 | BT1 feedback |
 | v0.4.1 | BT2 | Added FR10/FR11 and US12/US13 for BT2 full-CRUD requirement; added appointment soft-delete and technician skill CRUD design notes; normalized BT2 target tag to v0.2. | BT2 [SE] S1 and tag clarification |
 | v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |
+| v0.6 | BT2 finalisation (Session 12) | §1.5 rewritten for the actual committed sample; design notes 8–10 (customer snapshot fixture, concurrent assignment guard, business clock); NFR4/QT-15 masking now implemented in the service layer; supporting read endpoints `GET /api/tickets/{ticket_id}` (US2/US4 summary) and `GET /api/issue-categories` (US8 filter) added to the API contract. | TD-15 to TD-29 |

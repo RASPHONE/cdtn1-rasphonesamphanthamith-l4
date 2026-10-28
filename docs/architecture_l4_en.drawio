@@ -53,7 +53,7 @@
     <mxCell id="40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontStyle=1;fontSize=15;spacingTop=6;" value="LAYER 4 — STORAGE (PostgreSQL 16)&#xa;schema-level integrity: PK · FK · CHECK · UNIQUE · INDEX&#xa;tables: ticket, technician, technician_skill, issue_category, appointment, ticket_status_log&#xa;indexes: idx_ticket_unassigned · idx_skill_lookup · idx_appointment_overlap · idx_log_ticket" vertex="1">
       <mxGeometry height="120" width="820" x="60" y="510" as="geometry" />
     </mxCell>
-    <mxCell id="50" edge="1" parent="1" source="3" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="20" value="HTTP + JSON&#xa;(API contract: docs/api_contract.md)">
+    <mxCell id="50" edge="1" parent="1" source="3" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="20" value="HTTP + JSON&#xa;(API contract: docs/api-contract.md)">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
     <mxCell id="51" edge="1" parent="1" source="20" style="endArrow=block;endFill=1;html=1;fontSize=11;" target="30" value="calls via Repository interfaces&#xa;(one-way dependency; lower layers never call up)">

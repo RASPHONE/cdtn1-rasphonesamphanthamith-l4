@@ -1,4 +1,6 @@
--- docs/ddl_l4.sql — L4 DDL skeleton (PostgreSQL 16), BT1
+-- docs/ddl_l4.sql — L4 DDL skeleton (PostgreSQL 16), BT1 design + BT2 soft delete (TD-05)
+-- Design document. The executable schema is db/migrations/001_*.sql + 002_*.sql
+-- (scripts/migrate.py); both produce the same schema (TD-15).
 -- Every table/column serves an FR/QT cited in comments (reverse traceability).
 -- External master data (customer, device/product, service_center, employee)
 -- is intentionally NOT modeled in L4 (SRS v0.2 §5 design notes).
