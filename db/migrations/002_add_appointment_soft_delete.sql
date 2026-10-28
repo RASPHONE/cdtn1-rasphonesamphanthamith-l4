@@ -1,4 +1,4 @@
--- BT2 / TD-05
+-- db/migrations/002_add_appointment_soft_delete.sql — BT2 / TD-05
 -- Adds soft-delete support to appointment and updates conflict index.
 
 ALTER TABLE appointment

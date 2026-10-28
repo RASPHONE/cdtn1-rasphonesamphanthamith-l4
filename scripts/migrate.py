@@ -1,56 +1,73 @@
-import re
+"""Apply database migrations in filename order (db/migrations/NNN_*.sql).
+
+- Builds the schema from an empty database.
+- Safe to run again: applied files are recorded in `schema_migrations`
+  and skipped; every migration also uses IF NOT EXISTS.
+- Each file runs in its own transaction, so a failing file leaves no
+  half-applied changes.
+
+Usage:  python scripts/migrate.py
+"""
 import sys
 from pathlib import Path
 
-# Ensure src is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
-from src.db import get_connection
+from src.db import DatabaseUnavailableError, get_connection  # noqa: E402
 
-def split_sql(sql: str):
-    """Removes SQL comments and splits into executable statements."""
-    # Remove single-line comments (-- ...)
-    sql = re.sub(r'--[^\n]*', '', sql)
-    # Remove multi-line comments (/* ... */)
-    sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+MIGRATIONS_DIR = ROOT / "db" / "migrations"
 
-    statements = []
-    current = []
-    for line in sql.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        current.append(line)
-        if line.endswith(';'):
-            stmt = " ".join(current)
-            statements.append(stmt)
-            current = []
-    if current:
-        stmt = " ".join(current)
-        if stmt:
-            statements.append(stmt)
-    return statements
+CREATE_TRACKING_TABLE = """
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    filename   VARCHAR(255) PRIMARY KEY,
+    applied_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+)
+"""
 
-def migrate():
-    ddl_path = Path(__file__).resolve().parent.parent / "docs" / "ddl_l4.sql"
-    if not ddl_path.exists():
-        print(f"Error: {ddl_path} not found.")
-        sys.exit(1)
 
-    print(f"Reading DDL from {ddl_path}...")
-    sql_content = ddl_path.read_text(encoding="utf-8")
-    statements = split_sql(sql_content)
+def list_migration_files():
+    return sorted(MIGRATIONS_DIR.glob("[0-9][0-9][0-9]_*.sql"))
 
-    print("Running migrations...")
+
+def migrate() -> int:
+    files = list_migration_files()
+    if not files:
+        print(f"No migration files found in {MIGRATIONS_DIR}")
+        return 1
+
     with get_connection() as conn:
         with conn.cursor() as cur:
-            for i, stmt in enumerate(statements):
-                try:
-                    cur.execute(stmt)
-                except Exception as e:
-                    print(f"Error executing statement {i+1}:\n{stmt}\nError: {e}")
-                    sys.exit(1)
-    print("Migration completed successfully.")
+            cur.execute(CREATE_TRACKING_TABLE)
+            cur.execute("SELECT filename FROM schema_migrations")
+            applied = {row["filename"] for row in cur.fetchall()}
+
+    newly_applied = 0
+    for path in files:
+        if path.name in applied:
+            print(f"  skip   {path.name} (already applied)")
+            continue
+
+        sql = path.read_text(encoding="utf-8")
+        # One transaction per file: commit on success, roll back on error.
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                cur.execute(
+                    "INSERT INTO schema_migrations (filename) VALUES (%s)",
+                    (path.name,),
+                )
+        print(f"  apply  {path.name}")
+        newly_applied += 1
+
+    print(f"Migration completed: {newly_applied} applied, {len(files) - newly_applied} already up to date.")
+    return 0
+
 
 if __name__ == "__main__":
-    migrate()
+    try:
+        sys.exit(migrate())
+    except DatabaseUnavailableError as exc:
+        print(f"Error: cannot connect to PostgreSQL ({exc}). Check DB_* values in .env "
+              "and that the database exists (see README step 3).")
+        sys.exit(1)
