@@ -260,7 +260,8 @@ def test_technician_skill_crud_flow(client):
 
     existing_skills = list_response.json()
 
-    assert any(skill["category_id"] == 1 for skill in existing_skills)
+    assert existing_skills["technician_id"] == 1
+    assert any(skill["category_id"] == 1 for skill in existing_skills["items"])
 
     duplicate_response = client.post(
         "/api/technicians/1/skills",

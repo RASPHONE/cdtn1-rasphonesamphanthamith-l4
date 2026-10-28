@@ -238,5 +238,6 @@ def test_list_skills():
         technician_id=1,
     )
 
-    assert len(result) == 1
-    assert result[0]["technician_id"] == 1
+    assert result["technician_id"] == 1
+    assert len(result["items"]) == 1
+    assert result["items"][0]["category_id"] == 1

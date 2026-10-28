@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, Response
 
 from src.repositories.issue_category_repository import (
@@ -11,6 +9,7 @@ from src.repositories.technician_skill_repository import (
 )
 from src.schemas.technician_skill import (
     TechnicianSkillCreate,
+    TechnicianSkillList,
     TechnicianSkillRead,
     TechnicianSkillUpdate,
 )
@@ -30,7 +29,7 @@ def get_technician_skill_service() -> TechnicianSkillService:
 
 @router.get(
     "/{technician_id}/skills",
-    response_model=List[TechnicianSkillRead],
+    response_model=TechnicianSkillList,
 )
 def list_technician_skills(
     technician_id: int,

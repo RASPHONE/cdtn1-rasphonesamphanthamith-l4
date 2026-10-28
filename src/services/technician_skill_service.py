@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from src.errors import AppError
 from src.schemas.technician_skill import (
@@ -23,13 +23,16 @@ class TechnicianSkillService:
         *,
         center_id: int,
         technician_id: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         self._get_owned_technician(
             center_id=center_id,
             technician_id=technician_id,
         )
 
-        return self.skill_repo.list_by_technician(technician_id)
+        return {
+            "technician_id": technician_id,
+            "items": self.skill_repo.list_by_technician(technician_id),
+        }
 
     def get_skill(
         self,

@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -15,3 +17,8 @@ class TechnicianSkillRead(BaseModel):
     category_id: int
     category_name: str
     proficiency: int
+
+
+class TechnicianSkillList(BaseModel):
+    technician_id: int
+    items: List[TechnicianSkillRead]
