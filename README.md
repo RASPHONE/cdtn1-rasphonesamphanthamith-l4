@@ -1,106 +1,147 @@
 # Smart CRM – Mekong Mobile · Flow L4: Technician Assignment & Appointment Scheduling
-Repository: `cdtn1-rasphonesamphanthamith-l4` · Track SE · Specialized Graduation Topic I
-Design documents: `docs/` (BT1).
 
-## 1. Goal
-A decision-support system for warranty center managers at Mekong Mobile:
-- Replaces assignment by memory (problem V3): the system suggests technicians
-  from the same service center with proficiency >= 3 in the ticket's issue
-  category, showing each technician's current workload.
-- Reduces silently overdue tickets (problem V2): the unassigned-ticket list is
-  sorted by SLA due date (`due_date`).
-- Prevents double-booking: creating or updating an appointment is blocked when
-  it overlaps an active appointment of the same technician.
-Scope stops at the center manager's screens in v0.2: no customer portal
-(WON'T), no technician self-service UI (deferred to v1.1).
-Details: `docs/srs_en.md`.
+Repository `cdtn1-rasphonesamphanthamith-l4` · Track **SE** · Specialized Graduation Topic I (CĐTN1) · BT2 tag **`v0.2`**
+
+## 1. What it does
+
+A decision-support tool for warranty-center managers at Mekong Mobile. It lists the
+center's unassigned warranty tickets by SLA due date (problem V2), suggests only
+technicians of the same center with proficiency ≥ 3 in the ticket's issue category and
+shows each one's current workload (QT-08, problem V3), and records assignments and
+reassignments with a mandatory reason (QT-07). It books device hand-over/receipt
+appointments and blocks any time overlap for the same technician (FR7). Every manager
+only sees data of their own center (QT-14).
+
+Stack: FastAPI (Python) · PostgreSQL 16 · React + Vite. Requirements: `docs/srs.md`.
 
 ## 2. Environment
-- Python 3.11+ · FastAPI · SQLAlchemy
-- PostgreSQL 16 (native install or Docker)
-- Environment variables: see `.env.example`
-  (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, PORT)
-- Docker Desktop: only needed for BT3 packaging, not for BT1/BT2 development
 
-## 3. Run instructions (<= 4 steps)
-> **Status:** at the BT1 milestone this repository contains design documents
-> only (`docs/`). The four steps below become runnable from tag `v0.2` (BT2);
-1. `cp .env.example .env` and fill in the values
-2. `pip install -r requirements.txt`
-3. `python scripts/migrate.py`  # creates schema from `db/schema.sql`, loads `data/sample/`
-4. `uvicorn src.main:app --reload` → open `http://localhost:8000/health`
+| Tool | Version |
+|---|---|
+| Python | 3.11 or newer (Docker image: 3.12.7) |
+| PostgreSQL | 16 (a local install, or use Docker in section 4) |
+| Node.js | 22.12+ (or 20.19+) — required by Vite 8 |
+| Docker Desktop | optional, only for section 4 |
 
-## Run Frontend (React + Vite)
+All configuration is in environment variables; every variable is listed with a sample
+value in `.env.example` (backend) and `frontend/.env.example` (frontend). `.env` files are gitignored.
+
+## 3. Install and run (native)
+
+Run from the repository root, one command per step. Windows PowerShell: use `copy` instead of `cp`.
+
+| # | Step | Command |
+|---|---|---|
+| 1 | Get the code | `git clone --branch v0.2 https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4.git` |
+| 2 | Enter the folder | `cd cdtn1-rasphonesamphanthamith-l4` |
+| 3 | Create `.env` | `cp .env.example .env` — then set `DB_USER` / `DB_PASSWORD` to your local PostgreSQL account |
+| 4 | Create the empty database | `psql -U postgres -c "CREATE DATABASE mekong_l4"` |
+| 5 | Create a virtual environment | `python -m venv .venv` |
+| 6 | Activate it | Windows: `.venv\Scripts\activate` · macOS/Linux: `source .venv/bin/activate` |
+| 7 | Install dependencies (pinned) | `pip install -r requirements.txt` |
+| 8 | Build the schema | `python scripts/migrate.py` |
+| 9 | Load sample data | `python scripts/seed.py` |
+| 10 | Start the API | `uvicorn src.main:app --port 8000` |
+
+Frontend, in a **second terminal** (the API must be running):
+
+| # | Step | Command |
+|---|---|---|
+| 11 | Go to the frontend | `cd frontend` |
+| 12 | Create its `.env` | `cp .env.example .env` |
+| 13 | Install dependencies (lock file) | `npm ci` |
+| 14 | Start the UI | `npm run dev` → open http://localhost:5173 |
+
+### Demo accounts
+
+| Username | Password | Center |
+|---|---|---|
+| `manager1` | `manager123` | 1 |
+| `manager2` | `manager123` | 2 |
+
+Demo-only accounts for QT-14 scoping (TD-07); they are not production authentication.
+The session token is kept in the browser's `localStorage` — readable by an injected
+script if the page had an XSS bug; accepted for the prototype (an HttpOnly cookie is the production choice).
+
+## 4. Run with Docker (2 commands)
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cp .env.example .env
+docker compose up -d --build
 ```
 
-The frontend will be available at `http://localhost:5173`.
-Demo accounts:
-- `manager1` / `manager123` (Center 1)
-- `manager2` / `manager123` (Center 2)
-
-## 4. Directory structure
-```text
-docs/      BT1 design documents + original .drawio sources:
-           srs_en.md · usecase_l4_en.drawio · usecase_spec_l4_en.md ·
-           architecture_l4_en.drawio · architecture_l4_en.md · erd_l4_en.drawio ·
-           erd_l4_en.dbd · ddl_l4.sql · wireframes_l4_en.drawio ·
-           wireframe_mapping_en.md · api_contract_en.md · ai-disclosure_en.md
-src/       Source code in four layers (BT2):
-           presentation/ (controllers, views) · services/ · repositories/ ·
-           domain/ · main.py = FastAPI entry point (/health)
-db/        schema.sql — storage-layer DDL (6 tables, CHECK constraints, indexes)
-scripts/   migrate.py — schema creation + sample-data loading (BT2)
-data/      sample/ a few hundred example rows; raw/ is NOT committed (.gitignore)
-tools/     gen_sample.py — simulated data generation (--seed mandatory)
-tests/     pytest unit tests (BT2)
-```
+`docker compose ps` should show `db`, `api` and `web` as **healthy**. The API container
+builds the schema and loads the sample data automatically.
+UI: http://localhost:5173 · API: http://localhost:8000/health · PostgreSQL on host port 5433.
+Start over from an empty database: `docker compose down -v` then the second command again.
 
 ## 5. Tests
+
 ```bash
-pytest -v
+pytest -q
 ```
-Prints the number of PASSed tests. Status: no tests at the BT1 milestone;
 
-## 6. Current status
-- [x] Repository initialized, Conventional Commits (Session 2)
-- [x] BT1 — analysis & design (end of Session 6): five components + AI
-      appendix in `docs/`, PDF submitted via LMS (baseline tag `v0.1`)
-- [ ] Scaffold of core modules: empty files matching the four-layer
-      architecture (before Session 7)
-- [ ] BT2 — assignment & appointment modules runnable locally
-      (Sessions 8–12, tag `v0.2`)
-- [ ] BT3 — tests & Docker packaging (Sessions 13–16, tag `v1.0`)
+Expected: `81 passed`. Tests use in-memory fakes (`tests/fakes.py`) and need **no database and no `.env`**.
+The three BT2 test types (happy path · boundary · invalid data) in one file:
+`pytest -v tests/test_bt2_three_types.py`. Frontend checks: `npm run lint` and `npm run build` in `frontend/`.
 
-## 7. Sample data & seeds (Reproducibility)
-- Base case-study dataset: seed `20260901` (16 files, 187,650 rows).
-- L4 appointments (not present in the base set): seed `42`:
-  ```bash
-  python tools/gen_sample.py --entity appointment --rows 1200 --seed 42 \
-    --link tickets_history.csv --out appointments.csv
-  ```
-- The L4 working subset is ~40,200 records (warranty tickets + related status
-  logs + appointments + master data). This is a filtered subset, not the full
-  187,650-row dataset.
-- Large CSVs are NOT committed: `.gitignore` keeps `data/raw/` and `*.csv`
-  except `!data/sample/*.csv`.
-- Loading notes (BT2): empty `technician_id` → NULL; `is_warranty` strings →
-  boolean; `customer_name` / `customer_phone` are snapshot fields produced by
-  a fixture script (customers_raw cannot be joined to `customer_id`; see
-  `docs/srs_en.md` §5 note 2).
+## 6. Check that it works
 
-## 8. Design change log
+| Check | Command / action | Expected |
+|---|---|---|
+| API and database up | `curl http://localhost:8000/health` | `{"status":"ok","database":"up"}` |
+| Re-run is safe (no duplicates) | `python scripts/migrate.py` then `python scripts/seed.py` again | `0 applied, 2 already up to date` · every table `+0` |
+| Main flow | Log in as `manager2` → M1 → **Phân công** → choose a technician → **Xác nhận phân công** → **Đặt lịch hẹn → M3** → pick a future date/time → **Lưu & xác nhận** | Ticket leaves M1; appointment appears in M3 as "Đã xác nhận" |
+| Double booking blocked | In M3, enter an overlapping time for the same technician | Yellow "Trùng lịch" banner, save disabled; the API returns 409 with the conflicting appointment |
+| Filter with no result | M1: Nhóm sự cố "Nước vào" + Ưu tiên "Thấp" → **Áp dụng bộ lọc** | "Không có phiếu nào khớp bộ lọc hiện tại." + **Xoá bộ lọc** |
+| Invalid data | `curl -X POST http://localhost:8000/api/appointments -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d "{}"` | `400 bad_request` naming each missing field |
+| Backend stopped | Stop uvicorn, reload the UI | Error panel "Không kết nối được tới máy chủ…" with **Thử lại** |
+| Database stopped | Stop PostgreSQL, reload a screen | `503 database_unavailable`, UI shows "Cơ sở dữ liệu tạm thời không khả dụng…" |
 
-| Date | Change vs BT1 | Reason | Reference |
-|---|---|---|---|
-| 2026-10-15 | NFR4 threshold made measurable (100% mask format `090****567`); API Contract and directory tree kept repo-only, Report retained at 29 pages (reduced from 35 via TD-02 API-contract removal + TOC resize); 6–9 page guideline not met — deviation accepted with documented reasons | BT1 feedback TD-01, TD-02, TD-03 | `docs/thay-doi-thiet-ke_en.md` |
-| 2026-10-15 | Normalized tags and added BT2 design changes: appointment soft-delete, technician_skill CRUD, minimal demo auth decision | BT2 | `docs/thay-doi-thiet-ke_en.md` |
-| 2026-10-21 | Implemented BT2 core module for L4: appointment CRUD with soft delete, `technician_skill` CRUD, unassigned-ticket list, qualified-technician suggestion, assignment/reassignment, minimal demo authentication for QT-14 center scoping, seeded sample data, automated tests, and M1–M3 frontend screens. | BT2 Components 1–3: core module, tests, and presentation layer | `docs/thay-doi-thiet-ke_en.md`; `src/`; `tests/`; `frontend/`; `scripts/` |
-| 2026-10-26 | BT2 implementation and alignment: added/updated US14/FR12 demo-authentication traceability; documented `technician_skill` API-only CRUD scope; aligned appointment `DA_XAC_NHAN` create/confirm behavior; documented completed-appointment soft-delete rejection; enforced reassignment reason length 5–255; implemented NFR5 atomic assignment transaction; aligned qualified-technician response to `{ "ticket_id", "items": [...] }`; added assignment response `log_id`. | BT2 rubric consistency, traceability, and API-contract alignment | `docs/thay-doi-thiet-ke_en.md` TD-09 to TD-14; `docs/srs_en.md`; `docs/api_contract_en.md` |
+API reference and error codes: `docs/api-contract.md`.
 
-Internal SRS change log (v0.1 → v0.5, including pre-submission iterations):
-see `docs/srs_en.md` → Document control.
+## 7. Sample data (reproducible)
+
+The committed sample `data/sample/` (≈ 2,100 rows: 6 categories, 38 technicians, 159 skills,
+487 tickets, 1,330 status logs, 74 appointments) was built from the course dataset:
+
+```bash
+python tools/gen_dataset.py data/raw                                    # seed 20260901 (inside the script)
+python tools/gen_sample.py --entity appointment --rows 1200 --seed 42 --link data/raw/tickets_history.csv --out data/raw/appointments.csv
+python scripts/build_sample.py                                          # seed 42 → data/sample/*.csv
+```
+
+`data/raw/` (187,650 rows) is not committed. What the sample contains and why some rows
+are generated (no `MOI` tickets in the dataset, customer snapshot fixture): `docs/srs.md` §1.5.
+
+## 8. Project structure
+
+```text
+src/                     backend, three layers
+  routes/                  layer 1: HTTP endpoints (+ schemas/ = request validation)
+  services/                layer 2: business rules (QT-07, QT-08, QT-14, QT-15, FR7) — no HTTP, no SQL
+  repositories/            layer 3: SQL (psycopg 3) + transaction.py (unit of work)
+  main.py · errors.py · security.py · config.py · db.py
+db/migrations/           001_init_schema.sql, 002_add_appointment_soft_delete.sql
+scripts/                 migrate.py · seed.py · build_sample.py · docker-entrypoint.sh
+data/sample/             committed sample CSVs
+tools/                   course dataset generators (gen_dataset.py, gen_sample.py)
+tests/                   pytest: fakes.py + service and API tests
+frontend/src/            api/ (only fetch calls) · pages/ (M1, M2, M3, Login) · components/ · hooks/ · labels.js
+docs/                    srs.md · api-contract.md · architecture-thuc-te.md (as built) · thay-doi-thiet-ke.md
+                         ai-disclosure.md · bug-log.md · BT1 diagrams (.drawio) and exports/
+Dockerfile · frontend/Dockerfile · docker-compose.yml
+```
+
+Naming convention: code identifiers are English (`snake_case` in Python, `camelCase` in
+JavaScript); data fields keep the exact ERD column names from the SRS glossary
+(`ngay_hen`, `gio_bat_dau`, `trang_thai`, `ho_ten`, …). The UI text is Vietnamese.
+
+## 9. Design changes and history
+
+Every difference from the BT1 design, with reason and impact: `docs/thay-doi-thiet-ke.md` (TD-01 … TD-29).
+Bugs found and fixed: `docs/bug-log.md`. AI usage: `docs/ai-disclosure.md`.
+
+- [x] BT1 — analysis & design (PDF submitted; design files in `docs/`)
+- [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
+- [ ] BT3 — test plan/report and packaging (tag `v1.0`)
