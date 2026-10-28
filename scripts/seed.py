@@ -1,119 +1,191 @@
-import re
+"""Load the L4 sample data (data/sample/*.csv) into PostgreSQL.
+
+Safe to run again: every insert uses an explicit primary key with
+ON CONFLICT DO NOTHING, so a second run adds nothing (BT2 C5).
+Run after scripts/migrate.py.
+
+Usage: python scripts/seed.py
+"""
+import csv
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
-from src.db import get_connection
+from src.config import get_settings  # noqa: E402
+from src.db import DatabaseUnavailableError, get_connection  # noqa: E402
 
-def split_sql(sql: str):
-    """Removes SQL comments and splits into executable statements."""
-    # Remove single-line comments (-- ...)
-    sql = re.sub(r'--[^\n]*', '', sql)
-    # Remove multi-line comments (/* ... */)
-    sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+SAMPLE = ROOT / "data" / "sample"
+SLA_HOURS = {"CAO": 24, "TRUNG_BINH": 72, "THAP": 120}   # QT-04 (calendar hours, as in the dataset)
+DEMO_APPOINTMENT_FIRST_ID = 900001
+DEMO_SLOTS = [("09:00", "10:00"), ("14:00", "15:00"), ("10:00", "12:00")]
 
-    statements = []
-    current = []
-    for line in sql.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        current.append(line)
-        if line.endswith(';'):
-            stmt = " ".join(current)
-            statements.append(stmt)
-            current = []
-    if current:
-        stmt = " ".join(current)
-        if stmt:
-            statements.append(stmt)
-    return statements
+TABLES = ["issue_category", "technician", "technician_skill", "ticket",
+          "ticket_status_log", "appointment"]
+
+
+def rows(name):
+    with (SAMPLE / name).open(encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def none_if_empty(value):
+    return value if value not in ("", None) else None
+
+
+def as_bool(value):
+    return str(value).strip().lower() == "true"
+
 
 def seed():
-    print("Seeding database...")
+    settings = get_settings()
+    tz = ZoneInfo(settings.app_timezone)
+    now = datetime.now(tz)
 
-    sql = """
-    -- 1. Issue Categories (matches DDL: category_name, default_priority, is_active)
-    INSERT INTO issue_category (category_id, category_name, default_priority, is_active) VALUES
-    (1, 'MAN_HINH', 'CAO', TRUE),
-    (2, 'PIN', 'TRUNG_BINH', TRUE),
-    (3, 'SAC', 'TRUNG_BINH', TRUE),
-    (4, 'PHAN_MEM', 'THAP', TRUE),
-    (5, 'NUOC_VAO', 'CAO', TRUE),
-    (6, 'KHAC', 'TRUNG_BINH', TRUE),
-    (7, 'CU', 'THAP', FALSE)
-    ON CONFLICT (category_id) DO NOTHING;
-
-    -- 2. Technicians (matches DDL: technician_code, ho_ten, center_id, level, is_active)
-    INSERT INTO technician (technician_id, technician_code, ho_ten, center_id, level, is_active) VALUES
-    (1, 'KT001', 'Nguyen Van A', 1, 'TRUNG_CAP', TRUE),
-    (2, 'KT002', 'Tran Van B', 1, 'CAO_CAP', TRUE),
-    (3, 'KT003', 'Le Van C', 2, 'CAO_CAP', TRUE),
-    (4, 'KT004', 'Pham Van D', 2, 'TRUNG_CAP', TRUE),
-    (5, 'KT005', 'Hoang Van E', 1, 'SO_CAP', FALSE)
-    ON CONFLICT (technician_id) DO NOTHING;
-
-    -- 3. Technician Skills (matches DDL: technician_id, category_id, proficiency)
-    INSERT INTO technician_skill (technician_id, category_id, proficiency) VALUES
-    (1, 1, 4),
-    (1, 2, 2),
-    (2, 1, 3),
-    (2, 3, 5),
-    (3, 1, 4),
-    (4, 2, 3)
-    ON CONFLICT (technician_id, category_id) DO NOTHING;
-
-    -- 4. Tickets (matches DDL: all NOT NULL columns)
-    INSERT INTO ticket (
-        ticket_id, ticket_code, center_id, customer_name, customer_phone,
-        serial_no, issue_desc, category_id, priority, status,
-        technician_id, received_at, due_date, closed_at, is_warranty, is_deleted
-    ) VALUES
-    (101, 'PB-1-00001', 1, 'Khach 1', '0901111111', 'SN100000000001', 'Man bi soc', 1, 'CAO', 'MOI', NULL, NOW() - INTERVAL '2 hours', NOW() + INTERVAL '22 hours', NULL, TRUE, FALSE),
-    (102, 'PB-1-00002', 1, 'Khach 2', '0902222222', 'SN100000000002', 'Pin nhanh het', 2, 'THAP', 'MOI', NULL, NOW() - INTERVAL '1 hour', NOW() + INTERVAL '119 hours', NULL, TRUE, FALSE),
-    (103, 'PB-1-00003', 1, 'Khach 3', '0903333333', 'SN100000000003', 'Man bi am vang', 1, 'TRUNG_BINH', 'DA_PHAN_CONG', 1, NOW() - INTERVAL '3 hours', NOW() + INTERVAL '69 hours', NULL, TRUE, FALSE),
-    (104, 'PB-1-00004', 1, 'Khach 4', '0904444444', 'SN100000000004', 'Sac khong vao', 3, 'CAO', 'MOI', NULL, NOW() - INTERVAL '1 hour', NOW() + INTERVAL '23 hours', NULL, FALSE, FALSE),
-    (105, 'PB-1-00005', 1, 'Khach 5', '0905555555', 'SN100000000005', 'Man bi nut', 1, 'CAO', 'DA_DONG', 1, NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days', TRUE, FALSE),
-    (106, 'PB-1-00006', 1, 'Khach 6', '0906666666', 'SN100000000006', 'Man bi chuong', 1, 'CAO', 'MOI', NULL, NOW() - INTERVAL '1 hour', NOW() + INTERVAL '23 hours', NULL, TRUE, TRUE),
-    (201, 'PB-2-00001', 2, 'Khach 7', '0907777777', 'SN200000000001', 'Man bi den', 1, 'CAO', 'MOI', NULL, NOW() - INTERVAL '2 hours', NOW() + INTERVAL '22 hours', NULL, TRUE, FALSE)
-    ON CONFLICT (ticket_id) DO NOTHING;
-
-    -- 5. Appointments (matches DDL: all NOT NULL columns + is_deleted)
-    INSERT INTO appointment (
-        appointment_id, ticket_id, technician_id, center_id, loai, trang_thai,
-        ngay_hen, gio_bat_dau, gio_ket_thuc, is_deleted
-    ) VALUES
-    (201, 103, 1, 1, 'NHAN_MAY', 'DA_XAC_NHAN', CURRENT_DATE + INTERVAL '1 day', '09:00', '10:00', FALSE),
-    (202, 103, 1, 1, 'GIAO_MAY', 'HOAN_TAT', CURRENT_DATE - INTERVAL '1 day', '14:00', '15:00', FALSE),
-    (203, 103, 1, 1, 'NHAN_MAY', 'KHACH_HUY', CURRENT_DATE + INTERVAL '2 days', '11:00', '12:00', FALSE),
-    (204, 103, 1, 1, 'NHAN_MAY', 'DA_DAT', CURRENT_DATE + INTERVAL '3 days', '08:00', '09:00', TRUE)
-    ON CONFLICT (appointment_id) DO NOTHING;
-
-    -- 6. Ticket Status Log (matches DDL: ticket_id, from_status, to_status, changed_by)
-    INSERT INTO ticket_status_log (log_id, ticket_id, from_status, to_status, changed_by, note) VALUES
-    (1, 103, 'MOI', 'DA_PHAN_CONG', 1, 'Phan cong lan dau'),
-    (2, 105, 'MOI', 'DA_PHAN_CONG', 1, 'Phan cong lan dau'),
-    (3, 105, 'DA_PHAN_CONG', 'DANG_XU_LY', 1, NULL),
-    (4, 105, 'DANG_XU_LY', 'HOAN_TAT', 1, NULL),
-    (5, 105, 'HOAN_TAT', 'DA_DONG', 1, NULL)
-    ON CONFLICT (log_id) DO NOTHING;
-
-    -- 7. Sync sequences after explicit ID inserts
-    SELECT setval('issue_category_category_id_seq', COALESCE((SELECT MAX(category_id) FROM issue_category), 1));
-    SELECT setval('technician_technician_id_seq', COALESCE((SELECT MAX(technician_id) FROM technician), 1));
-    SELECT setval('ticket_ticket_id_seq', COALESCE((SELECT MAX(ticket_id) FROM ticket), 1));
-    SELECT setval('appointment_appointment_id_seq', COALESCE((SELECT MAX(appointment_id) FROM appointment), 1));
-    SELECT setval('ticket_status_log_log_id_seq', COALESCE((SELECT MAX(log_id) FROM ticket_status_log), 1));
-    """
-
-    statements = split_sql(sql)
+    categories = rows("issue_categories.csv")
+    technicians = rows("technicians.csv")
+    skills = rows("technician_skills.csv")
+    tickets = rows("tickets.csv")
+    logs = rows("ticket_status_log.csv")
+    appointments = rows("appointments.csv")
 
     with get_connection() as conn:
         with conn.cursor() as cur:
-            for stmt in statements:
-                cur.execute(stmt)
-    print("Seeding completed successfully.")
+            # Dataset timestamps have no zone: read them as business local time.
+            cur.execute(f"SET TIME ZONE '{settings.app_timezone}'")
+
+            counts_before = count_rows(cur)
+
+            cur.executemany(
+                """INSERT INTO issue_category (category_id, category_name, default_priority, is_active)
+                   VALUES (%s, %s, %s, %s) ON CONFLICT (category_id) DO NOTHING""",
+                [(c["category_id"], c["category_name"], c["default_priority"], as_bool(c["is_active"]))
+                 for c in categories],
+            )
+
+            cur.executemany(
+                """INSERT INTO technician (technician_id, technician_code, ho_ten, center_id, level, is_active)
+                   VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (technician_id) DO NOTHING""",
+                [(t["technician_id"], t["technician_code"], t["ho_ten"], t["center_id"], t["level"],
+                  as_bool(t["is_active"])) for t in technicians],
+            )
+
+            cur.executemany(
+                """INSERT INTO technician_skill (technician_id, category_id, proficiency)
+                   VALUES (%s, %s, %s) ON CONFLICT (technician_id, category_id) DO NOTHING""",
+                [(s["technician_id"], s["category_id"], s["proficiency"]) for s in skills],
+            )
+
+            ticket_values = []
+            for t in tickets:
+                if t["received_minutes_ago"]:
+                    # Generated unassigned ticket: received shortly before seeding.
+                    received_at = now - timedelta(minutes=int(t["received_minutes_ago"]))
+                    due_date = received_at + timedelta(hours=SLA_HOURS[t["priority"]])
+                else:
+                    received_at, due_date = t["received_at"], t["due_date"]
+                ticket_values.append((
+                    t["ticket_id"], t["ticket_code"], t["center_id"], t["customer_name"],
+                    t["customer_phone"], t["serial_no"], t["issue_desc"], t["category_id"],
+                    t["priority"], t["status"], none_if_empty(t["technician_id"]),
+                    received_at, due_date, none_if_empty(t["closed_at"]), as_bool(t["is_warranty"]),
+                ))
+            cur.executemany(
+                """INSERT INTO ticket (ticket_id, ticket_code, center_id, customer_name, customer_phone,
+                       serial_no, issue_desc, category_id, priority, status, technician_id,
+                       received_at, due_date, closed_at, is_warranty)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (ticket_id) DO NOTHING""",
+                ticket_values,
+            )
+
+            cur.executemany(
+                """INSERT INTO ticket_status_log (log_id, ticket_id, from_status, to_status,
+                       changed_at, changed_by, note)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (log_id) DO NOTHING""",
+                [(log["log_id"], log["ticket_id"], none_if_empty(log["from_status"]), log["to_status"],
+                  log["changed_at"], log["changed_by"], none_if_empty(log["note"])) for log in logs],
+            )
+
+            cur.executemany(
+                """INSERT INTO appointment (appointment_id, ticket_id, technician_id, center_id, loai,
+                       trang_thai, ngay_hen, gio_bat_dau, gio_ket_thuc)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (appointment_id) DO NOTHING""",
+                [(a["appointment_id"], a["ticket_id"], a["technician_id"], a["center_id"], a["loai"],
+                  a["trang_thai"], a["ngay_hen"], a["gio_bat_dau"], a["gio_ket_thuc"]) for a in appointments],
+            )
+
+            sync_sequences(cur)
+
+            # Creation log (NULL -> MOI) for generated tickets, once per ticket (QT-06).
+            cur.execute(
+                """INSERT INTO ticket_status_log (ticket_id, from_status, to_status, changed_at, changed_by)
+                   SELECT t.ticket_id, NULL, 'MOI', t.received_at, 0
+                   FROM ticket t
+                   WHERE t.status = 'MOI'
+                     AND NOT EXISTS (SELECT 1 FROM ticket_status_log l
+                                     WHERE l.ticket_id = t.ticket_id AND l.to_status = 'MOI')"""
+            )
+
+            insert_demo_appointments(cur, tickets, now)
+            sync_sequences(cur)
+
+            counts_after = count_rows(cur)
+
+    print("Seeding completed (rows added / total):")
+    for table in TABLES:
+        added = counts_after[table] - counts_before[table]
+        print(f"  {table:18} +{added:<5} {counts_after[table]:>6}")
+
+
+def insert_demo_appointments(cur, tickets, now):
+    """A few upcoming appointments per demo center so M3 has something to show.
+    Fixed ids => inserted once, never duplicated on later runs."""
+    demo = []
+    appointment_id = DEMO_APPOINTMENT_FIRST_ID
+    for center in ("1", "2"):
+        assigned = sorted(
+            (t for t in tickets if t["center_id"] == center and t["technician_id"]),
+            key=lambda t: int(t["ticket_id"]),
+        )[:3]
+        for day_offset, (ticket, (start, end)) in enumerate(zip(assigned, DEMO_SLOTS), start=1):
+            demo.append((appointment_id, ticket["ticket_id"], ticket["technician_id"], center,
+                         "GIAO_MAY" if day_offset % 2 else "NHAN_MAY", "DA_XAC_NHAN",
+                         (now + timedelta(days=day_offset)).date(), start, end))
+            appointment_id += 1
+    cur.executemany(
+        """INSERT INTO appointment (appointment_id, ticket_id, technician_id, center_id, loai,
+               trang_thai, ngay_hen, gio_bat_dau, gio_ket_thuc)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (appointment_id) DO NOTHING""",
+        demo,
+    )
+
+
+def sync_sequences(cur):
+    """Explicit ids were inserted, so move each sequence past the max id."""
+    for table, column in [("issue_category", "category_id"), ("technician", "technician_id"),
+                          ("ticket", "ticket_id"), ("ticket_status_log", "log_id"),
+                          ("appointment", "appointment_id")]:
+        cur.execute(
+            f"SELECT setval(pg_get_serial_sequence('{table}', '{column}'), "
+            f"COALESCE((SELECT MAX({column}) FROM {table}), 1))"
+        )
+
+
+def count_rows(cur):
+    counts = {}
+    for table in TABLES:
+        cur.execute(f"SELECT COUNT(*) AS n FROM {table}")
+        counts[table] = cur.fetchone()["n"]
+    return counts
+
 
 if __name__ == "__main__":
-    seed()
+    try:
+        seed()
+    except DatabaseUnavailableError as exc:
+        print(f"Error: cannot connect to PostgreSQL ({exc}). Check DB_* values in .env.")
+        sys.exit(1)
