@@ -1,7 +1,6 @@
+import jwt
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
-
-import jwt
 
 from src.config import get_settings
 from src.errors import AppError
@@ -17,12 +16,9 @@ def get_current_token_payload(token: str = Depends(oauth2_scheme)) -> dict:
         raise AppError("unauthorized", "Authentication required.")
 
     settings = get_settings()
-    if not settings.jwt_secret:
-        raise AppError("internal_error", "Server authentication is not configured.")
 
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-        return payload
+        return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         raise AppError("unauthorized", "Token has expired.")
     except jwt.PyJWTError:
@@ -35,3 +31,7 @@ def get_current_center_id(payload: dict = Depends(get_current_token_payload)) ->
 
 def get_current_user_id(payload: dict = Depends(get_current_token_payload)) -> int:
     return payload["user_id"]
+
+
+def get_current_role(payload: dict = Depends(get_current_token_payload)) -> str:
+    return payload.get("role", "")

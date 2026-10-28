@@ -18,6 +18,7 @@ class PostgresTicketRepository:
         t.priority,
         t.status,
         t.technician_id,
+        tech.ho_ten AS technician_ho_ten,
         t.received_at,
         t.due_date,
         t.closed_at,
@@ -26,6 +27,8 @@ class PostgresTicketRepository:
     FROM ticket t
     JOIN issue_category ic
       ON ic.category_id = t.category_id
+    LEFT JOIN technician tech
+      ON tech.technician_id = t.technician_id
     """
 
     def get_by_id(self, ticket_id: int, conn=None):
@@ -107,17 +110,24 @@ class PostgresTicketRepository:
         new_status: str,
         conn=None,
     ):
+        """First assignment. The WHERE clause only matches a ticket that is
+        still unassigned, so two simultaneous requests cannot both succeed.
+        Returns None when no row was updated."""
         update_sql = """
         UPDATE ticket
         SET technician_id = %s,
             status = %s
         WHERE ticket_id = %s
           AND is_deleted = FALSE
+          AND status = 'MOI'
+          AND technician_id IS NULL
         """
 
         def _do(c):
             with c.cursor() as cur:
                 cur.execute(update_sql, (technician_id, new_status, ticket_id))
+                if cur.rowcount == 0:
+                    return None
             return self.get_by_id(ticket_id, conn=c)
 
         if conn is not None:
@@ -130,18 +140,24 @@ class PostgresTicketRepository:
         self,
         ticket_id: int,
         technician_id: int,
+        expected_technician_id: int,
         conn=None,
     ):
+        """Reassignment. Only updates when the ticket still has the technician
+        the caller saw (optimistic check). Returns None when no row was updated."""
         update_sql = """
         UPDATE ticket
         SET technician_id = %s
         WHERE ticket_id = %s
           AND is_deleted = FALSE
+          AND technician_id = %s
         """
 
         def _do(c):
             with c.cursor() as cur:
-                cur.execute(update_sql, (technician_id, ticket_id))
+                cur.execute(update_sql, (technician_id, ticket_id, expected_technician_id))
+                if cur.rowcount == 0:
+                    return None
             return self.get_by_id(ticket_id, conn=c)
 
         if conn is not None:

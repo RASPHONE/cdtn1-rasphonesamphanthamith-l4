@@ -29,6 +29,13 @@ class UnassignedTicketList(BaseModel):
     items: List[UnassignedTicketRead]
 
 
+class TicketDetailRead(UnassignedTicketRead):
+    """Read-only ticket summary for M2 and M3."""
+
+    technician_ho_ten: Optional[str] = None
+    closed_at: Optional[datetime] = None
+
+
 class QualifiedTechnicianRead(BaseModel):
     technician_id: int
     technician_code: str
@@ -38,13 +45,21 @@ class QualifiedTechnicianRead(BaseModel):
     workload: int
 
 
+class QualifiedTechnicianList(BaseModel):
+    ticket_id: int
+    items: List[QualifiedTechnicianRead]
+
+
 class AssignmentCreate(BaseModel):
     technician_id: int
 
 
 class AssignmentUpdate(BaseModel):
     technician_id: int
-    reason: str
+    # Optional at the format level on purpose: a missing reason is a business
+    # rule violation (QT-07) answered with 422 `reason_required` by the service,
+    # not a 400 format error.
+    reason: Optional[str] = None
 
 
 class TicketAssignmentRead(BaseModel):
@@ -54,7 +69,3 @@ class TicketAssignmentRead(BaseModel):
     status: str
     technician_id: int
     log_id: int
-
-class QualifiedTechnicianList(BaseModel):
-    ticket_id: int
-    items: List[QualifiedTechnicianRead]

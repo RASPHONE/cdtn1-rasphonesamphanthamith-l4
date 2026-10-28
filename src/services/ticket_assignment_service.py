@@ -1,12 +1,17 @@
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict
 
-from src.db import get_connection
 from src.errors import AppError
 from src.schemas.ticket import AssignmentCreate, AssignmentUpdate
+from src.services.phone_masking import apply_phone_policy, apply_phone_policy_all
 
 
 class TicketAssignmentService:
+    """UC1-UC3: unassigned list, technician suggestion, assignment (QT-07, QT-08, QT-14)."""
+
     CLOSED_TICKET_STATUSES = {"HOAN_TAT", "DA_DONG", "DA_HUY"}
+    MIN_PROFICIENCY = 3          # QT-08
+    REASON_MIN_LENGTH = 5        # QT-07 / API contract §4
+    REASON_MAX_LENGTH = 255      # ticket_status_log.note VARCHAR(255)
 
     def __init__(
         self,
@@ -14,16 +19,20 @@ class TicketAssignmentService:
         technician_repository,
         technician_skill_repository,
         status_log_repository,
+        transaction: Callable,
     ):
         self.ticket_repo = ticket_repository
         self.technician_repo = technician_repository
         self.skill_repo = technician_skill_repository
         self.status_log_repo = status_log_repository
+        # Unit of work factory: `with self.transaction() as tx:` (NFR5).
+        self.transaction = transaction
 
     def list_unassigned_tickets(
         self,
         *,
         center_id: int,
+        role: str | None = None,
         category_id: int | None = None,
         priority: str | None = None,
         page: int = 1,
@@ -41,8 +50,29 @@ class TicketAssignmentService:
             "page": page,
             "page_size": page_size,
             "total": total,
-            "items": items,
+            "items": apply_phone_policy_all(items, role),
         }
+
+    def get_ticket(
+        self,
+        *,
+        center_id: int,
+        ticket_id: int,
+        role: str | None = None,
+    ) -> Dict[str, Any]:
+        """Ticket summary for M2/M3 (read-only)."""
+        ticket = self.ticket_repo.get_by_id(ticket_id)
+
+        if not ticket or ticket["is_deleted"]:
+            raise AppError("ticket_not_found", "Ticket not found.")
+
+        if ticket["center_id"] != center_id:
+            raise AppError(
+                "cross_center_access",
+                "You cannot access another center's ticket.",
+            )
+
+        return apply_phone_policy(ticket, role)
 
     def list_qualified_technicians(
         self,
@@ -90,26 +120,27 @@ class TicketAssignmentService:
         )
 
         # NFR5: ticket update + status log insert in ONE transaction.
-        with get_connection() as conn:
+        # Raising inside the block rolls both writes back.
+        with self.transaction() as tx:
             updated_ticket = self.ticket_repo.assign_technician(
                 ticket_id,
                 technician["technician_id"],
                 "DA_PHAN_CONG",
-                conn=conn,
+                conn=tx,
             )
+            if not updated_ticket:
+                # Someone else assigned the ticket between our check and update.
+                raise AppError(
+                    "ticket_not_assignable",
+                    "This ticket was assigned by someone else. Reload and try again.",
+                )
             log_id = self.status_log_repo.create(
                 ticket_id=ticket_id,
                 from_status="MOI",
                 to_status="DA_PHAN_CONG",
                 changed_by=changed_by,
                 note=None,
-                conn=conn,
-            )
-
-        if not updated_ticket:
-            raise AppError(
-                "ticket_not_found",
-                "Ticket not found.",
+                conn=tx,
             )
 
         updated_ticket["log_id"] = log_id
@@ -134,13 +165,7 @@ class TicketAssignmentService:
                 "This ticket is not currently assigned.",
             )
 
-        reason = payload.reason.strip()
-
-        if len(reason) < 5 or len(reason) > 255:
-            raise AppError(
-                "reason_required",
-                "Reassignment reason must be between 5 and 255 characters.",
-            )
+        reason = self._validate_reason(payload.reason)
 
         technician = self._get_qualified_technician(
             ticket=ticket,
@@ -148,29 +173,42 @@ class TicketAssignmentService:
         )
 
         # NFR5: ticket update + status log insert in ONE transaction.
-        with get_connection() as conn:
+        with self.transaction() as tx:
             updated_ticket = self.ticket_repo.update_technician(
                 ticket_id,
                 technician["technician_id"],
-                conn=conn,
+                expected_technician_id=ticket["technician_id"],
+                conn=tx,
             )
+            if not updated_ticket:
+                raise AppError(
+                    "ticket_not_assignable",
+                    "This ticket was changed by someone else. Reload and try again.",
+                )
             log_id = self.status_log_repo.create(
                 ticket_id=ticket_id,
                 from_status=ticket["status"],
                 to_status=ticket["status"],
                 changed_by=changed_by,
                 note=reason,
-                conn=conn,
-            )
-
-        if not updated_ticket:
-            raise AppError(
-                "ticket_not_found",
-                "Ticket not found.",
+                conn=tx,
             )
 
         updated_ticket["log_id"] = log_id
         return updated_ticket
+
+    def _validate_reason(self, reason: str | None) -> str:
+        """QT-07: changing technician requires a reason of 5-255 characters."""
+        cleaned = (reason or "").strip()
+
+        if not (self.REASON_MIN_LENGTH <= len(cleaned) <= self.REASON_MAX_LENGTH):
+            raise AppError(
+                "reason_required",
+                "Reason is required when changing technician (5-255 characters).",
+                details=[{"field": "reason", "message": "5-255 characters required"}],
+            )
+
+        return cleaned
 
     def _get_active_ticket_for_center(
         self,
@@ -237,7 +275,7 @@ class TicketAssignmentService:
             category_id=ticket["category_id"],
         )
 
-        if not skill or skill["proficiency"] < 3:
+        if not skill or skill["proficiency"] < self.MIN_PROFICIENCY:
             raise AppError(
                 "technician_not_qualified",
                 "Technician does not have sufficient proficiency for this category.",
