@@ -23,7 +23,7 @@ def test_health(client):
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "database": "up"}
 
 
 def test_login_success(client):
@@ -115,6 +115,7 @@ def test_appointment_crud_flow(client):
 
     assert conflict_response.status_code == 409
     assert conflict_response.json()["error"] == "appointment_conflict"
+    assert conflict_response.json()["conflicts"][0]["appointment_id"] == appointment_id
 
     list_response = client.get(
         "/api/appointments",
@@ -492,3 +493,114 @@ def test_qualified_technicians_cross_center_fails(client):
 
     assert response.status_code == 403
     assert response.json()["error"] == "cross_center_access"
+
+
+def make_token(role, center_id=1, user_id=9):
+    """Token for a role that has no demo login (used to check QT-15 masking)."""
+    import jwt
+
+    from src.config import get_settings
+
+    payload = {"sub": "test", "user_id": user_id, "role": role, "center_id": center_id}
+    token = jwt.encode(payload, get_settings().jwt_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_reassign_with_missing_reason_field_returns_422(client):
+    # Teacher feedback / API contract §4: a missing reason is a QT-07 violation (422),
+    # not a malformed request (400).
+    headers = auth_header(client)
+
+    response = client.patch(
+        "/api/tickets/103/assignment",
+        json={"technician_id": 2},
+        headers=headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"] == "reason_required"
+
+
+def test_conflict_precheck_endpoint(client):
+    headers = auth_header(client)
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    client.post(
+        "/api/appointments",
+        json={"ticket_id": 103, "loai": "NHAN_MAY", "ngay_hen": tomorrow,
+              "gio_bat_dau": "14:00", "gio_ket_thuc": "15:00"},
+        headers=headers,
+    )
+
+    busy = client.get(
+        "/api/appointments/conflicts",
+        params={"technician_id": 1, "ngay_hen": tomorrow,
+                "gio_bat_dau": "14:30", "gio_ket_thuc": "15:30"},
+        headers=headers,
+    )
+    free = client.get(
+        "/api/appointments/conflicts",
+        params={"technician_id": 1, "ngay_hen": tomorrow,
+                "gio_bat_dau": "15:00", "gio_ket_thuc": "16:00"},
+        headers=headers,
+    )
+
+    assert busy.status_code == 200
+    assert len(busy.json()["conflicts"]) == 1
+    assert free.json() == {"conflicts": []}
+
+
+def test_invalid_filter_value_returns_400(client):
+    headers = auth_header(client)
+
+    response = client.get("/api/tickets/unassigned?priority=URGENT", headers=headers)
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "bad_request"
+    assert response.json()["details"][0]["field"] == "priority"
+
+
+def test_ticket_detail_and_cross_center(client):
+    headers = auth_header(client)
+
+    own = client.get("/api/tickets/103", headers=headers)
+    other = client.get("/api/tickets/201", headers=headers)
+
+    assert own.status_code == 200
+    assert own.json()["ticket_code"] == "PB-1-00103"
+    assert own.json()["customer_phone"] == "0900000103"
+    assert other.status_code == 403
+
+
+def test_non_manager_role_sees_masked_phone(client):
+    response = client.get("/api/tickets/unassigned", headers=make_token("TECHNICIAN"))
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["customer_phone"] == "090****101"
+
+
+def test_issue_categories_lists_active_only(client):
+    headers = auth_header(client)
+
+    response = client.get("/api/issue-categories", headers=headers)
+
+    assert response.status_code == 200
+    assert [c["category_name"] for c in response.json()] == ["MAN_HINH", "PHAN_MEM"]
+
+
+def test_database_down_returns_503_not_raw_error(client):
+    from src.db import DatabaseUnavailableError
+    from src.main import app
+    from src.routes.tickets import get_ticket_assignment_service
+
+    class DownService:
+        def list_unassigned_tickets(self, **kwargs):
+            raise DatabaseUnavailableError("connection refused")
+
+    headers = auth_header(client)
+    app.dependency_overrides[get_ticket_assignment_service] = lambda: DownService()
+
+    response = client.get("/api/tickets/unassigned", headers=headers)
+
+    assert response.status_code == 503
+    assert response.json()["error"] == "database_unavailable"
+    assert "connection refused" not in response.text

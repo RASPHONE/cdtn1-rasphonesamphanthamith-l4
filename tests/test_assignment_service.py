@@ -3,119 +3,13 @@ import pytest
 from src.errors import AppError
 from src.schemas.ticket import AssignmentCreate, AssignmentUpdate
 from src.services.ticket_assignment_service import TicketAssignmentService
-
-
-class FakeTicketRepository:
-    def __init__(self, tickets):
-        self.tickets = {ticket["ticket_id"]: dict(ticket) for ticket in tickets}
-
-    def get_by_id(self, ticket_id):
-        ticket = self.tickets.get(ticket_id)
-        return dict(ticket) if ticket else None
-
-    def list_unassigned(
-        self,
-        *,
-        center_id,
-        category_id=None,
-        priority=None,
-        page=1,
-        page_size=20,
-    ):
-        items = [
-            dict(ticket)
-            for ticket in self.tickets.values()
-            if ticket["center_id"] == center_id
-            and ticket["is_deleted"] is False
-            and ticket["is_warranty"] is True
-            and ticket["status"] == "MOI"
-            and ticket["technician_id"] is None
-        ]
-
-        if category_id is not None:
-            items = [item for item in items if item["category_id"] == category_id]
-
-        if priority is not None:
-            items = [item for item in items if item["priority"] == priority]
-
-        total = len(items)
-        start = (page - 1) * page_size
-        end = start + page_size
-
-        return items[start:end], total
-
-    def assign_technician(self, ticket_id, technician_id, new_status, conn=None):
-        ticket = self.tickets.get(ticket_id)
-        if not ticket:
-            return None
-        ticket["technician_id"] = technician_id
-        ticket["status"] = new_status
-        return dict(ticket)
-
-    def update_technician(self, ticket_id, technician_id, conn=None):
-        ticket = self.tickets.get(ticket_id)
-        if not ticket:
-            return None
-        ticket["technician_id"] = technician_id
-        return dict(ticket)
-
-
-class FakeTechnicianRepository:
-    def __init__(self, technicians):
-        self.technicians = {
-            technician["technician_id"]: dict(technician)
-            for technician in technicians
-        }
-
-    def get_by_id(self, technician_id):
-        technician = self.technicians.get(technician_id)
-        return dict(technician) if technician else None
-
-    def list_qualified_for_category(self, *, center_id, category_id):
-        return []
-
-
-class FakeTechnicianSkillRepository:
-    def __init__(self, skills):
-        self.skills = {
-            (skill["technician_id"], skill["category_id"]): dict(skill)
-            for skill in skills
-        }
-
-    def get_skill(self, technician_id, category_id):
-        skill = self.skills.get((technician_id, category_id))
-        return dict(skill) if skill else None
-
-
-class FakeTicketStatusLogRepository:
-    def __init__(self):
-        self.logs = []
-        self.next_log_id = 1000
-
-    def create(
-        self,
-        *,
-        ticket_id,
-        from_status,
-        to_status,
-        changed_by,
-        note=None,
-        conn=None,
-    ):
-        log_id = self.next_log_id
-        self.next_log_id += 1
-
-        self.logs.append(
-            {
-                "log_id": log_id,
-                "ticket_id": ticket_id,
-                "from_status": from_status,
-                "to_status": to_status,
-                "changed_by": changed_by,
-                "note": note,
-            }
-        )
-        return log_id
+from tests.fakes import (
+    FakeTechnicianRepository,
+    FakeTechnicianSkillRepository,
+    FakeTicketRepository,
+    FakeTicketStatusLogRepository,
+    fake_transaction,
+)
 
 
 def make_ticket(
@@ -186,6 +80,7 @@ def make_service(ticket_overrides=None, technicians=None, skills=None):
         technician_repository=technician_repo,
         technician_skill_repository=skill_repo,
         status_log_repository=log_repo,
+        transaction=fake_transaction,
     )
 
     return service, log_repo, ticket_repo
@@ -403,3 +298,100 @@ def test_reassign_to_inactive_technician_fails():
         )
 
     assert exc.value.code == "technician_not_qualified"
+
+
+# ---------------------------------------------------------------------------
+# Boundary values (BT2 TP2 type 2)
+# ---------------------------------------------------------------------------
+
+def test_boundary_proficiency_exactly_3_is_qualified():
+    # QT-08: proficiency >= 3. Technician 4 has exactly 3.
+    service, _, _ = make_service()
+
+    result = service.assign_technician(
+        center_id=1, ticket_id=101, payload=AssignmentCreate(technician_id=4), changed_by=1
+    )
+
+    assert result["technician_id"] == 4
+
+
+def test_boundary_proficiency_2_is_not_qualified():
+    # QT-08: one below the threshold. Technician 2 has proficiency 2.
+    service, log_repo, _ = make_service()
+
+    with pytest.raises(AppError) as exc:
+        service.assign_technician(
+            center_id=1, ticket_id=101, payload=AssignmentCreate(technician_id=2), changed_by=1
+        )
+
+    assert exc.value.code == "technician_not_qualified"
+    assert log_repo.logs == []
+
+
+def test_boundary_reason_with_5_characters_is_accepted():
+    # QT-07: 5 characters is the minimum accepted reason length.
+    service, log_repo, _ = make_service(
+        ticket_overrides={"status": "DA_PHAN_CONG", "technician_id": 1}
+    )
+
+    service.reassign_technician(
+        center_id=1, ticket_id=101,
+        payload=AssignmentUpdate(technician_id=4, reason="Om 3n"), changed_by=1,
+    )
+
+    assert log_repo.logs[0]["note"] == "Om 3n"
+
+
+def test_boundary_reason_with_4_characters_is_rejected():
+    service, log_repo, _ = make_service(
+        ticket_overrides={"status": "DA_PHAN_CONG", "technician_id": 1}
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.reassign_technician(
+            center_id=1, ticket_id=101,
+            payload=AssignmentUpdate(technician_id=4, reason="Bom!"), changed_by=1,
+        )
+
+    assert exc.value.code == "reason_required"
+    assert log_repo.logs == []
+
+
+# ---------------------------------------------------------------------------
+# Invalid data (BT2 TP2 type 3)
+# ---------------------------------------------------------------------------
+
+def test_reassign_with_missing_reason_fails():
+    # Field omitted entirely -> still the QT-07 business error, not a crash.
+    service, _, _ = make_service(
+        ticket_overrides={"status": "DA_PHAN_CONG", "technician_id": 1}
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.reassign_technician(
+            center_id=1, ticket_id=101,
+            payload=AssignmentUpdate(technician_id=4), changed_by=1,
+        )
+
+    assert exc.value.code == "reason_required"
+
+
+def test_assignment_lost_race_is_rejected_without_log():
+    # Another manager assigned the ticket between our read and our update:
+    # the guarded UPDATE matches no row and nothing is logged (NFR5).
+    service, log_repo, ticket_repo = make_service()
+    original_assign = ticket_repo.assign_technician
+
+    def assign_after_someone_else(ticket_id, technician_id, new_status, conn=None):
+        ticket_repo.tickets[ticket_id]["technician_id"] = 99
+        return original_assign(ticket_id, technician_id, new_status, conn=conn)
+
+    ticket_repo.assign_technician = assign_after_someone_else
+
+    with pytest.raises(AppError) as exc:
+        service.assign_technician(
+            center_id=1, ticket_id=101, payload=AssignmentCreate(technician_id=1), changed_by=1
+        )
+
+    assert exc.value.code == "ticket_not_assignable"
+    assert log_repo.logs == []

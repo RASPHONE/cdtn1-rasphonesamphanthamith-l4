@@ -6,67 +6,11 @@ from src.schemas.technician_skill import (
     TechnicianSkillUpdate,
 )
 from src.services.technician_skill_service import TechnicianSkillService
-
-
-class FakeTechnicianRepository:
-    def __init__(self, technicians):
-        self.technicians = {
-            technician["technician_id"]: dict(technician)
-            for technician in technicians
-        }
-
-    def get_by_id(self, technician_id):
-        return self.technicians.get(technician_id)
-
-
-class FakeIssueCategoryRepository:
-    def __init__(self, categories):
-        self.categories = {
-            category["category_id"]: dict(category)
-            for category in categories
-        }
-
-    def get_by_id(self, category_id):
-        return self.categories.get(category_id)
-
-
-class FakeTechnicianSkillRepository:
-    def __init__(self, skills=None):
-        self.skills = {}
-
-        for skill in skills or []:
-            key = (skill["technician_id"], skill["category_id"])
-            self.skills[key] = dict(skill)
-
-    def list_by_technician(self, technician_id):
-        return [
-            dict(skill)
-            for skill in self.skills.values()
-            if skill["technician_id"] == technician_id
-        ]
-
-    def get_skill(self, technician_id, category_id):
-        skill = self.skills.get((technician_id, category_id))
-        return dict(skill) if skill else None
-
-    def create(self, technician_id, category_id, proficiency):
-        key = (technician_id, category_id)
-        self.skills[key] = {
-            "technician_id": technician_id,
-            "category_id": category_id,
-            "category_name": f"CATEGORY_{category_id}",
-            "proficiency": proficiency,
-        }
-
-    def update_proficiency(self, technician_id, category_id, proficiency):
-        key = (technician_id, category_id)
-        if key not in self.skills:
-            return
-        self.skills[key]["proficiency"] = proficiency
-
-    def delete_skill(self, technician_id, category_id):
-        key = (technician_id, category_id)
-        return self.skills.pop(key, None) is not None
+from tests.fakes import (
+    FakeIssueCategoryRepository,
+    FakeTechnicianRepository,
+    FakeTechnicianSkillRepository,
+)
 
 
 def make_technician(technician_id=1, center_id=1, is_active=True):
