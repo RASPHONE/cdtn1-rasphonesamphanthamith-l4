@@ -1,16 +1,26 @@
-# React + Vite
+# Frontend — M1 · M2 · M3 (React 19 + Vite 8 + Tailwind CSS 4)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Center-manager screens for flow L4. Start the backend first (root README), then:
 
-Currently, two official plugins are available:
+```bash
+cp .env.example .env      # VITE_API_BASE_URL=http://localhost:8000
+npm ci
+npm run dev               # http://localhost:5173
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Folder | Role |
+|---|---|
+| `src/api/` | The only code that calls the backend (`client.js` = fetch, token, error translation). |
+| `src/pages/` | One file per wireframe screen: `UnassignedTicketsPage` (M1), `AssignmentPage` (M2), `AppointmentsPage` (M3), `LoginPage`. |
+| `src/components/` | Reusable UI: `DataState` (loading / empty / error), `Badge`, `Pagination`. |
+| `src/hooks/useApi.js` | Loads one API call and exposes `loading`, `error`, `data`, `reload`. |
+| `src/labels.js` | Vietnamese labels for API codes and error messages (single place). |
 
-## React Compiler
+Naming: code identifiers are English camelCase; API fields keep the exact ERD
+column names (`ngay_hen`, `gio_bat_dau`, `trang_thai`, ...).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Token storage: the demo JWT is kept in `localStorage` (`src/api/session.js`).
+Limitation: readable by injected scripts if an XSS bug existed; acceptable for
+the BT2 prototype, an HttpOnly cookie would be the production choice.
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Checks: `npm run lint` · `npm run build`.
