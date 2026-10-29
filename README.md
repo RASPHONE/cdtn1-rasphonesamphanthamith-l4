@@ -18,7 +18,7 @@ Stack: FastAPI (Python) · PostgreSQL 16 · React + Vite. Requirements: `docs/sr
 
 | Tool | Version |
 |---|---|
-| Python | 3.11 or newer (Docker image: 3.12.7) |
+| Python | 3.11 – 3.14 (tested on each; Docker image: 3.12.7) |
 | PostgreSQL | 16 (a local install, or use Docker in section 4) |
 | Node.js | 22.12+ (or 20.19+) — required by Vite 8 |
 | Docker Desktop | optional, only for section 4 |

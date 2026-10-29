@@ -76,3 +76,12 @@ Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commi
 - **Root cause:** the route's response model was `List[TechnicianSkillRead]`.
 - **Fix:** `TechnicianSkillList` response (TD-29).
 - **Commit & confirmation:** `23f53b6`; `test_technician_skill_crud_flow` and `test_list_skills` updated and pass.
+
+### BUG-010 · Critical — `pip install -r requirements.txt` failed on Python 3.14
+- **Found by:** clean-machine rehearsal on Linux before tagging `v0.2` (Session 12).
+- **Symptom:** `ERROR: No matching distribution found for psycopg-binary==3.2.3`; pip only offered 3.2.10+.
+- **Reproduce:** Python 3.14 → `pip install -r requirements.txt` (or `pip download --only-binary=:all: --python-version 3.14 …`).
+- **Root cause:** the pinned `psycopg[binary]==3.2.3` and `pydantic==2.10.3` (→ `pydantic-core 2.27.1`) were released before Python 3.14 and publish no prebuilt wheels for it; pinned versions must have wheels for every Python version the README allows.
+- **Fix:** `psycopg[binary]==3.2.13`, `pydantic==2.13.5` (both publish wheels for 3.11–3.14); FastAPI and the other pins unchanged. One Python 3.14 deprecation warning raised inside FastAPI/Starlette is filtered in `pytest.ini`. README states Python 3.11 – 3.14.
+- **Commit & confirmation:** this commit; fresh virtual environments on Python 3.11, 3.12, 3.13 and 3.14 install with wheels only and pass all 81 tests; on 3.14 migrate, seed (second run +0), API and an assignment work against PostgreSQL 16.
+
