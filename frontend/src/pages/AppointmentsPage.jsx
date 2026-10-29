@@ -13,7 +13,7 @@ import {
 
 const PAGE_SIZE = 10
 const EMPTY_FORM = { loai: 'GIAO_MAY', ngay_hen: '', gio_bat_dau: '09:00', gio_ket_thuc: '10:00' }
-const NO_FILTERS = { ngayHen: '', trangThai: '' }
+const NO_FILTERS = { ngay_hen: '', trang_thai: '' }
 
 export default function AppointmentsPage({ initialTicketId, onOpenTicket }) {
   // ----- target of the form: a ticket (create) or an existing appointment (edit)
@@ -36,8 +36,8 @@ export default function AppointmentsPage({ initialTicketId, onOpenTicket }) {
     [targetTicketId],
   )
   const appointments = useApi(
-    () => appointmentsApi.list({ page, pageSize: PAGE_SIZE, ...filters }),
-    [page, filters.ngayHen, filters.trangThai],
+    () => appointmentsApi.list({ page, page_size: PAGE_SIZE, ...filters }),
+    [page, filters.ngay_hen, filters.trang_thai],
   )
 
   const technicianId = editing ? editing.technician_id : ticket.data?.technician_id
@@ -54,10 +54,10 @@ export default function AppointmentsPage({ initialTicketId, onOpenTicket }) {
   useEffect(() => {
     if (!checkKey) return undefined
     let cancelled = false
-    const [techId, ngayHen, gioBatDau, gioKetThuc, excludeId] = JSON.parse(checkKey)
+    const [technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc, exclude_appointment_id] = JSON.parse(checkKey)
     const timer = setTimeout(() => {
       appointmentsApi
-        .checkConflicts({ technicianId: techId, ngayHen, gioBatDau, gioKetThuc, excludeAppointmentId: excludeId })
+        .checkConflicts({ technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc, exclude_appointment_id })
         .then((data) => { if (!cancelled) setConflictResult({ key: checkKey, conflicts: data.conflicts }) })
         // On failure the save-time check on the server stays authoritative.
         .catch(() => { if (!cancelled) setConflictResult({ key: checkKey, conflicts: [] }) })
@@ -125,7 +125,7 @@ export default function AppointmentsPage({ initialTicketId, onOpenTicket }) {
     }
   }
 
-  const hasFilters = Boolean(filters.ngayHen || filters.trangThai)
+  const hasFilters = Boolean(filters.ngay_hen || filters.trang_thai)
   const setFilter = (key, value) => { setPage(1); setFilters({ ...filters, [key]: value }) }
   const items = appointments.data?.items || []
 
@@ -233,12 +233,12 @@ export default function AppointmentsPage({ initialTicketId, onOpenTicket }) {
         <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
           <label className="text-sm">
             Ngày hẹn
-            <input type="date" value={filters.ngayHen} onChange={(e) => setFilter('ngayHen', e.target.value)}
+            <input type="date" value={filters.ngay_hen} onChange={(e) => setFilter('ngay_hen', e.target.value)}
               className="mt-1 block rounded border p-2" />
           </label>
           <label className="text-sm">
             Trạng thái
-            <select value={filters.trangThai} onChange={(e) => setFilter('trangThai', e.target.value)}
+            <select value={filters.trang_thai} onChange={(e) => setFilter('trang_thai', e.target.value)}
               className="mt-1 block w-44 rounded border p-2">
               <option value="">Tất cả</option>
               {Object.entries(APPOINTMENT_STATUS_LABELS).map(([code, label]) => (

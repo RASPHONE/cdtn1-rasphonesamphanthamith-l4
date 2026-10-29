@@ -1,20 +1,13 @@
 import { request } from './client'
 
 export const appointmentsApi = {
-  list: ({ page = 1, pageSize = 20, ngayHen, trangThai, ticketId } = {}) =>
-    request('/api/appointments', {
-      query: { page, page_size: pageSize, ngay_hen: ngayHen, trang_thai: trangThai, ticket_id: ticketId },
-    }),
+  // Query objects use the exact API / ERD field names (ngay_hen, trang_thai, ...).
+  list: ({ page = 1, page_size = 20, ngay_hen, trang_thai, ticket_id } = {}) =>
+    request('/api/appointments', { query: { page, page_size, ngay_hen, trang_thai, ticket_id } }),
   // FR7 pre-check before saving (UC4 step 5)
-  checkConflicts: ({ technicianId, ngayHen, gioBatDau, gioKetThuc, excludeAppointmentId }) =>
+  checkConflicts: ({ technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc, exclude_appointment_id }) =>
     request('/api/appointments/conflicts', {
-      query: {
-        technician_id: technicianId,
-        ngay_hen: ngayHen,
-        gio_bat_dau: gioBatDau,
-        gio_ket_thuc: gioKetThuc,
-        exclude_appointment_id: excludeAppointmentId,
-      },
+      query: { technician_id, ngay_hen, gio_bat_dau, gio_ket_thuc, exclude_appointment_id },
     }),
   create: (payload) => request('/api/appointments', { method: 'POST', body: payload }),
   update: (appointmentId, payload) =>

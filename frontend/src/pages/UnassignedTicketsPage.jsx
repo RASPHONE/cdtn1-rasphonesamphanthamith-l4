@@ -9,7 +9,7 @@ import { useApi } from '../hooks/useApi'
 import { PRIORITY_LABELS, PRIORITY_TONE, categoryLabel, formatDateTime, slaStatus } from '../labels'
 
 const PAGE_SIZE = 20
-const NO_FILTERS = { categoryId: '', priority: '' }
+const NO_FILTERS = { category_id: '', priority: '' }
 
 export default function UnassignedTicketsPage({ onAssign }) {
   const [draftFilters, setDraftFilters] = useState(NO_FILTERS) // what the dropdowns show
@@ -18,11 +18,11 @@ export default function UnassignedTicketsPage({ onAssign }) {
 
   const categories = useApi(() => categoriesApi.listActive(), [])
   const tickets = useApi(
-    () => ticketsApi.listUnassigned({ page, pageSize: PAGE_SIZE, ...filters }),
-    [page, filters.categoryId, filters.priority],
+    () => ticketsApi.listUnassigned({ page, page_size: PAGE_SIZE, ...filters }),
+    [page, filters.category_id, filters.priority],
   )
 
-  const hasFilters = Boolean(filters.categoryId || filters.priority)
+  const hasFilters = Boolean(filters.category_id || filters.priority)
   const applyFilters = () => { setPage(1); setFilters(draftFilters) }
   const clearFilters = () => { setPage(1); setDraftFilters(NO_FILTERS); setFilters(NO_FILTERS) }
 
@@ -42,8 +42,8 @@ export default function UnassignedTicketsPage({ onAssign }) {
         <label className="text-sm">
           Nhóm sự cố
           <select
-            value={draftFilters.categoryId}
-            onChange={(e) => setDraftFilters({ ...draftFilters, categoryId: e.target.value })}
+            value={draftFilters.category_id}
+            onChange={(e) => setDraftFilters({ ...draftFilters, category_id: e.target.value })}
             disabled={categories.loading || Boolean(categories.error)}
             className="mt-1 block w-44 rounded border p-2"
           >

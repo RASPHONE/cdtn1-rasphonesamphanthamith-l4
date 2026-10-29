@@ -16,8 +16,9 @@ npm run dev               # http://localhost:5173
 | `src/hooks/useApi.js` | Loads one API call and exposes `loading`, `error`, `data`, `reload`. |
 | `src/labels.js` | Vietnamese labels for API codes and error messages (single place). |
 
-Naming: code identifiers are English camelCase; API fields keep the exact ERD
-column names (`ngay_hen`, `gio_bat_dau`, `trang_thai`, ...).
+Naming: code identifiers are English camelCase; anything exchanged with the API (query
+objects, request bodies, response fields) uses the exact ERD/API field names
+(`ngay_hen`, `gio_bat_dau`, `trang_thai`, `page_size`, ...), never camelCase copies.
 
 Token storage: the demo JWT is kept in `localStorage` (`src/api/session.js`).
 Limitation: readable by injected scripts if an XSS bug existed; acceptable for
