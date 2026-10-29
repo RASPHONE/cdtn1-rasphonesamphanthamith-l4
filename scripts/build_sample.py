@@ -33,9 +33,9 @@ NEW_TICKET_FIRST_ID = 8001               # dataset ticket ids stop at 7800
 
 # Customer snapshot fixture (SRS section 5 note 2: customers_raw cannot be
 # joined to tickets_history.customer_id, so names/phones are generated).
-HO = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ"]
-DEM = ["Văn", "Thị", "Hữu", "Đức", "Minh", "Ngọc", "Thanh", "Quang", "Xuân", "Tuấn"]
-TEN = ["An", "Bình", "Cường", "Dung", "Đạt", "Giang", "Hà", "Hải", "Hạnh", "Huy", "Khoa",
+SURNAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ"]
+MIDDLE_NAMES = ["Văn", "Thị", "Hữu", "Đức", "Minh", "Ngọc", "Thanh", "Quang", "Xuân", "Tuấn"]
+GIVEN_NAMES = ["An", "Bình", "Cường", "Dung", "Đạt", "Giang", "Hà", "Hải", "Hạnh", "Huy", "Khoa",
        "Lan", "Linh", "Long", "Mai", "Nam", "Phong", "Phúc", "Quân", "Sơn", "Tâm", "Thảo", "Trang", "Vy"]
 CATEGORY_WEIGHTS = {"1": 1310, "2": 980, "3": 640, "4": 520, "5": 330, "6": 220}  # same mix as the dataset
 
@@ -65,7 +65,7 @@ def write(name, columns, rows):
 
 
 def customer_snapshot(rnd):
-    name = f"{rnd.choice(HO)} {rnd.choice(DEM)} {rnd.choice(TEN)}"
+    name = f"{rnd.choice(SURNAMES)} {rnd.choice(MIDDLE_NAMES)} {rnd.choice(GIVEN_NAMES)}"
     phone = "09" + "".join(str(rnd.randint(0, 9)) for _ in range(8))
     return name, phone
 
