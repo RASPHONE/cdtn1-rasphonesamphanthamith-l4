@@ -35,13 +35,18 @@ Run from the repository root, one command per step. Windows PowerShell: use `cop
 | 1 | Get the code | `git clone --branch v0.2 https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4.git` |
 | 2 | Enter the folder | `cd cdtn1-rasphonesamphanthamith-l4` |
 | 3 | Create `.env` | `cp .env.example .env` — then set `DB_USER` / `DB_PASSWORD` to your local PostgreSQL account |
-| 4 | Create the empty database | `psql -U postgres -c "CREATE DATABASE mekong_l4"` |
+| 4 | Create the empty database | `psql -h localhost -U postgres -c "CREATE DATABASE mekong_l4"` — use the `DB_USER` and `DB_NAME` from your `.env` (the account needs the right to create databases; `postgres` has it) |
 | 5 | Create a virtual environment | `python -m venv .venv` |
 | 6 | Activate it | Windows: `.venv\Scripts\activate` · macOS/Linux: `source .venv/bin/activate` |
 | 7 | Install dependencies (pinned) | `pip install -r requirements.txt` |
 | 8 | Build the schema | `python scripts/migrate.py` |
 | 9 | Load sample data | `python scripts/seed.py` |
 | 10 | Start the API | `uvicorn src.main:app --port 8000` |
+
+Linux note for step 4: a fresh PostgreSQL install lets the `postgres` account log in only
+through `sudo` and gives it no password, while the API logs in over TCP with `DB_PASSWORD`.
+Set the password from your `.env` once, then run step 4:
+`sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres'"`
 
 Frontend, in a **second terminal** (the API must be running):
 
