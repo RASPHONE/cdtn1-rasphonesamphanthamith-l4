@@ -1,7 +1,7 @@
 # Frontend (React + Vite) — built by docker-compose.yml as service "web".
 
 # ---------- stage 1: build the static files ----------
-FROM node:22.12.0-alpine AS build
+FROM node:22.14.0-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
