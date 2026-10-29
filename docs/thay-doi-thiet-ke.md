@@ -4,6 +4,10 @@
 Accumulation). When BT2 feedback arrives (Session 13+), append new entries at the end
 of this file with the next TD-xx codes.*
 
+**Format.** Changes triggered by lecturer feedback (TD-01 … TD-03) use the Session 8
+template: **Feedback · Decision · Reason · Impact**. All other changes use the BT2
+three-line format: **Change** (what) · **Reason** (why) · **Impact** (which components).
+
 ## After BT1 feedback (Session 8, date 15/10/2026)
 
 ### TD-01 Measurable threshold for NFR4 (phone masking)
@@ -33,65 +37,63 @@ of this file with the next TD-xx codes.*
 ## BT2 implementation changes
 
 ### TD-04 Choose full-CRUD entities for BT2
-- **Feedback/Reason:** BT2 rubric item [SE] S1 requires at least two entities with full CRUD.
-- **Decision:** Implement full CRUD for `appointment` and `technician_skill`.
+- **Change:** Implement full CRUD for `appointment` and `technician_skill`.
+- **Reason:** BT2 rubric item [SE] S1 requires at least two entities with full CRUD.
 - **Impact:** Adds appointment read/list/detail and soft-delete endpoints; adds technician skill CRUD endpoints, service/repository classes, tests, and traceability updates. `ticket` remains seeded sample data from L2 and is not expanded into full ticket CRUD.
 
 ### TD-05 Appointment soft delete
-- **Feedback/Reason:** BT2 requires a Delete operation for appointment, but appointment history should remain traceable.
-- **Decision:** Add `appointment.is_deleted BOOLEAN NOT NULL DEFAULT FALSE`. The DELETE endpoint sets `is_deleted = TRUE` instead of physically removing the row. Default appointment lists and conflict checks exclude soft-deleted appointments.
+- **Change:** Add `appointment.is_deleted BOOLEAN NOT NULL DEFAULT FALSE`. The DELETE endpoint sets `is_deleted = TRUE` instead of physically removing the row. Default appointment lists and conflict checks exclude soft-deleted appointments.
+- **Reason:** BT2 requires a Delete operation for appointment, but appointment history should remain traceable.
 - **Impact:** ERD, DDL, migration, API contract, appointment repository/service, tests.
 
 ### TD-06 Technician skill CRUD
-- **Feedback/Reason:** A second full-CRUD entity is required. `technician_skill` directly supports QT-08, which requires proficiency ≥ 3 for qualified technicians.
-- **Decision:** Implement CRUD endpoints under `/api/technicians/{technician_id}/skills`. Delete removes the skill row because technician skill is configuration data supporting eligibility and is not protected by QT-13.
+- **Change:** Implement CRUD endpoints under `/api/technicians/{technician_id}/skills`. Delete removes the skill row because technician skill is configuration data supporting eligibility and is not protected by QT-13.
+- **Reason:** A second full-CRUD entity is required. `technician_skill` directly supports QT-08, which requires proficiency ≥ 3 for qualified technicians.
 - **Impact:** API contract, SRS traceability, technician skill repository/service, tests.
 
 ### TD-07 Minimal demo authentication
-- **Feedback/Reason:** BT2 extension requires basic login, and QT-14 requires center scoping.
-- **Decision:** Implement minimal demo authentication for the prototype. The token carries `role` and `center_id`. This is not production authentication.
+- **Change:** Implement minimal demo authentication for the prototype. The token carries `role` and `center_id`. This is not production authentication.
+- **Reason:** BT2 extension requires basic login, and QT-14 requires center scoping.
 - **Impact:** `POST /api/auth/login` (FR12/US14, TD-14), token dependencies in `src/security.py`, README demo credentials, and center-scoped access control in services.
 
 ### TD-08 Normalize tag/version references
-- **Feedback/Reason:** Official BT2 tag is `v0.2`. Previous references to `v0.5` were mistaken or should refer to the BT1 baseline.
-- **Decision:** BT2 submission tag uses `v0.2`. BT1 was submitted as a PDF and has no Git tag (correction, Session 12: an earlier version of this entry named a `v0.1` baseline tag that was never created). Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
+- **Change:** BT2 submission tag uses `v0.2`. BT1 was submitted as a PDF and has no Git tag (correction, Session 12: an earlier version of this entry named a `v0.1` baseline tag that was never created). Product-version text inside SRS/API documents uses “BT2 prototype” where appropriate.
+- **Reason:** Official BT2 tag is `v0.2`. Previous references to `v0.5` were mistaken or should refer to the BT1 baseline.
 - **Impact:** README, SRS, API contract, and other docs only. No business logic changes.
 
 ## BT2 Implementation Alignments (Session 10-12)
 
 ### TD-09 Align appointment create status to `DA_XAC_NHAN`
-- **Feedback/Reason:** BT1 SRS (US5 AC1), API contract (§3.5), and Wireframe M3 all specified that confirmed appointments are created as `DA_XAC_NHAN`. The initial BT2 implementation incorrectly used `DA_DAT`.
-- **Decision:** FIX. Updated `AppointmentService.create_appointment` to set `trang_thai = DA_XAC_NHAN`.
+- **Change:** Updated `AppointmentService.create_appointment` to set `trang_thai = DA_XAC_NHAN`.
+- **Reason:** BT1 SRS (US5 AC1), API contract (§3.5), and Wireframe M3 all specified that confirmed appointments are created as `DA_XAC_NHAN`. The initial BT2 implementation incorrectly used `DA_DAT`.
 - **Impact:** Code only. Aligns implementation with approved BT1 design.
 
 ### TD-10 Restrict PATCH appointment status
-- **Feedback/Reason:** API contract §3.6 states that in v0.2, `trang_thai` may only be updated to `DA_XAC_NHAN`. Cancellation statuses are deferred to US10.
-- **Decision:** FIX. Restricted `AppointmentUpdate` schema Literal to only allow `DA_XAC_NHAN`.
+- **Change:** Restricted `AppointmentUpdate` schema Literal to only allow `DA_XAC_NHAN`.
+- **Reason:** API contract §3.6 states that in v0.2, `trang_thai` may only be updated to `DA_XAC_NHAN`. Cancellation statuses are deferred to US10.
 - **Impact:** Code and API contract clarification. Prevents managers from setting deferred statuses via API.
 
 ### TD-11 Enforce reassignment reason length
-- **Feedback/Reason:** API contract validation table specifies `reason` must be 5–255 characters. Initial implementation only checked for non-empty strings.
-- **Decision:** FIX. Added length validation (`len(reason) < 5 or len(reason) > 255`) in `TicketAssignmentService.reassign_technician`.
+- **Change:** Added length validation (`len(reason) < 5 or len(reason) > 255`) in `TicketAssignmentService.reassign_technician`.
+- **Reason:** API contract validation table specifies `reason` must be 5–255 characters. Initial implementation only checked for non-empty strings.
 - **Impact:** Code only. Enforces QT-07 strictly as specified in the contract.
 
 ### TD-12 Implement NFR5 service-layer transaction boundary
-- **Feedback/Reason:** Architecture rationale #4 claimed that ticket updates and status log inserts are wrapped in one database transaction (NFR5). However, repositories were opening independent connections, risking partial commits if the log insert failed.
-- **Decision:** FIX. Refactored `TicketRepository` and `TicketStatusLogRepository` to accept an optional shared `conn` parameter. `TicketAssignmentService` now opens a single `with get_connection() as conn:` block to coordinate both writes atomically.
+- **Change:** Refactored `TicketRepository` and `TicketStatusLogRepository` to accept an optional shared `conn` parameter. `TicketAssignmentService` now opens a single `with get_connection() as conn:` block to coordinate both writes atomically (later refined by TD-17: the transaction factory is injected).
+- **Reason:** Architecture rationale #4 claimed that ticket updates and status log inserts are wrapped in one database transaction (NFR5). However, repositories were opening independent connections, risking partial commits if the log insert failed.
 - **Impact:** Code and test fakes. Fulfills the NFR5 reliability promise made in BT1.
 
 ### TD-13 Qualified-technician response shape and `log_id`
-- **Feedback/Reason:** API contract §3.2 specified the qualified technicians response should be wrapped in `{ "ticket_id": ..., "items": [...] }`. Contract §3.3/3.4 specified the assignment response should include the new `log_id`.
-- **Decision:** FIX. Wrapped the service response in `QualifiedTechnicianList` schema. Added `log_id` to `TicketAssignmentRead` schema, populated from the status log repository.
-- **Impact:** Code, schemas, and API tests. Ensures frontend and API contract are perfectly aligned.
+- **Change:** Wrapped the service response in `QualifiedTechnicianList` schema. Added `log_id` to `TicketAssignmentRead` schema, populated from the status log repository.
+- **Reason:** API contract §3.2 specified the qualified technicians response should be wrapped in `{ "ticket_id": ..., "items": [...] }`. Contract §3.3/3.4 specified the assignment response should include the new `log_id`.
+- **Impact:** Code, schemas, and API tests. The M2 page was not updated at the same time and rendered blank until BUG-004 was fixed (TD-25).
 
 ### TD-14 Traceability for demo auth and technician_skill CRUD
-- **Feedback/Reason:** API contract self-check requires every endpoint to trace to a User Story. `POST /api/auth/login` lacked traceability. Additionally, `technician_skill` CRUD was added in BT2, contradicting the BT1 "imported master data" assumption.
-- **Decision:** FIX. Added FR12 and US14 to SRS for minimal demo auth. Added reconciliation notes to API contract and Wireframe mapping explaining the `technician_skill` CRUD scope adjustment.
+- **Change:** Added FR12 and US14 to SRS for minimal demo auth. Added reconciliation notes to API contract and Wireframe mapping explaining the `technician_skill` CRUD scope adjustment.
+- **Reason:** API contract self-check requires every endpoint to trace to a User Story. `POST /api/auth/login` lacked traceability. Additionally, `technician_skill` CRUD was added in BT2, contradicting the BT1 "imported master data" assumption.
 - **Impact:** SRS (bumped to v0.5), API contract, Wireframe mapping. Ensures 100% traceability matrix compliance.
 
 ## BT2 Finalisation (Session 12)
-
-Each entry: **Change** (what differs from BT1 / earlier BT2 design) · **Reason** · **Impact** (what it touches).
 
 ### TD-15 Executable migrations in `db/migrations/`
 - **Change:** `scripts/migrate.py` used to execute `docs/ddl_l4.sql` and never ran the soft-delete migration. Migrations are now `001_init_schema.sql` (BT1 DDL, made re-runnable) and `002_add_appointment_soft_delete.sql` (TD-05), applied in order and recorded in a `schema_migrations` table. `docs/ddl_l4.sql` stays as the consolidated design schema; both produce an identical schema (checked with `pg_dump -s`).
@@ -170,7 +172,7 @@ Each entry: **Change** (what differs from BT1 / earlier BT2 design) · **Reason*
 - **Impact:** `technician_skill_service.py`, `schemas/technician_skill.py`, `routes/technician_skills.py`, two tests.
 
 ### TD-30 Consistency pass on the documentation
-- **Change:** Corrected statements that contradicted the code or each other: US1 AC3 / NFR3 (lists are filtered by the token's center; only direct record access returns 403), QT-04 working-day clause restored in the SRS, FR10 shown as API-only in the traceability matrix, API-contract validation table now lists error codes (the contract) instead of message wording, response time format `HH:MM:SS`, 3.2/3.3/3.6/3.8 error lists, use-case UC3 preconditions and reason length, BT1 architecture index names, BT1 file names in the AI disclosure, TD-02/TD-07/TD-08 wording, BUG-001 root cause (reproduced: collision on `ticket_status_log`, not `appointment`).
+- **Change:** Corrected statements that contradicted the code or each other: US1 AC3 / NFR3 (lists are filtered by the token's center; only direct record access returns 403), QT-04 working-day clause restored in the SRS, FR10 shown as API-only in the traceability matrix, API-contract validation table now lists error codes (the contract) instead of message wording, response time format `HH:MM:SS`, 3.2/3.3/3.6/3.8 error lists, use-case UC3 preconditions and reason length, BT1 architecture index names, BT1 file names in the AI disclosure, TD-02/TD-07/TD-08 wording, BUG-001 root cause (reproduced: collision on `ticket_status_log`, not `appointment`); TD-04 … TD-14 relabelled to the three-line format and TD-13's impact corrected (it had claimed the frontend was aligned, see BUG-004).
 - **Reason:** Rubric criterion 3 — documents must match the implementation; found in a document-versus-code review in Session 12.
 - **Impact:** `docs/` text and `.drawio` sources only; no code change.
 

@@ -133,9 +133,11 @@ docs/                    srs.md · api-contract.md · architecture-thuc-te.md (a
 Dockerfile · frontend/Dockerfile · docker-compose.yml
 ```
 
-Naming convention: code identifiers are English (`snake_case` in Python, `camelCase` in
-JavaScript); data fields keep the exact ERD column names from the SRS glossary
-(`ngay_hen`, `gio_bat_dau`, `trang_thai`, `ho_ten`, …). The UI text is Vietnamese.
+Naming convention: identifiers we choose are English (`snake_case` in Python, `camelCase`
+in JavaScript). Data fields — columns, API fields, and the JavaScript objects sent to or
+read from the API — keep the exact ERD column names from the SRS glossary (`ngay_hen`,
+`gio_bat_dau`, `trang_thai`, `ho_ten`, …), which come from the course dataset and were kept
+on purpose (BT1 feedback). The UI text is Vietnamese.
 
 ## 9. Current status
 
