@@ -187,3 +187,23 @@ hit while running the repository is also logged as a bug in `docs/bug-log.md`.*
 - **Change:** The Source column now always names where a requirement comes from. FR6–FR9 (previously "—") cite the case study: FR6 and FR7 the L4 flow scope ("đặt lịch hẹn giao – nhận máy", "kiểm tra trùng lịch"), FR8 problem V3, the L4 scope and the Center Manager interview #1–#2, FR9 is marked *derived* from QT-08, QT-04 and interview #3. FR10–FR12 (added in BT2) cited "BT2 S1" / "BT2 Component 3"; those are course constraints, not business sources, so they are listed in SRS §5 as CC-01 / CC-02 and the FRs cite those IDs. FR6 ("create or update an appointment") is kept as one requirement: both operations act on the same record with the same validation and conflict rule (US5, US6 AC3), unlike two separate capabilities in one sentence.
 - **Reason:** In BT1 the column held only business-rule IDs, so "—" meant "no QT rule"; BT2 added rows with course-constraint sources and the column lost a single meaning. The SRS template allows an optional source column only with one consistent meaning, and constraints from the course should not be mixed with business sources (requirements material, §5). Adding FR10–FR12 after BT1 is recorded in TD-04, TD-06, TD-07 and TD-14.
 - **Impact:** `docs/srs.md` §3.1, §5 and change log (v0.7) only; no code, test or traceability-matrix change.
+
+### TD-32 `JWT_SECRET` may be empty; published values are refused (BUG-011)
+- **Change:** An empty `JWT_SECRET` now gives a random signing key per API process, `.env.example` ships it empty, `docker-compose.yml` no longer requires it, and the API refuses to start with a value that was published in the repository or one shorter than 32 characters.
+- **Reason:** BUG-011 — the published sample let anyone sign a manager token for any center. Leaving it empty keeps the two-command Docker start (BT3 TP4) without a shared secret.
+- **Impact:** `src/config.py`, `.env.example`, `docker-compose.yml`, `tests/conftest.py`, `tests/test_config.py`, README §2. A user whose `.env` still has the old sample must empty that line. Demo logins end when the API restarts.
+
+### TD-33 New error `same_technician` on reassignment (BUG-012)
+- **Change:** `PATCH /api/tickets/{ticket_id}/assignment` with the technician who already holds the ticket returns `422 same_technician` and writes nothing.
+- **Reason:** BUG-012 — QT-07 logs a change of technician; a request that changes nothing was recorded as one. The rule now lives in the service, not only in M2's disabled radio button.
+- **Impact:** `ticket_assignment_service.py`, `src/errors.py`, API contract §3.4 and validation table, one unit test, TC-09.
+
+### TD-34 Message for a request body that is not JSON (BUG-013)
+- **Change:** Such requests return 400 `bad_request` with "Request body is not valid JSON." and `details: [{"field": "body"}]`.
+- **Reason:** BUG-013 — the previous message named a character position as the field.
+- **Impact:** `src/main.py` validation handler, API contract §1, TC-08.
+
+### TD-35 BT3 test set-up and CI
+- **Change:** Added `tests/bt3/` (Test Report cases TC-01 … TC-12). The database cases build `<DB_NAME>_test_tpl` once with the real migrate/seed scripts and recreate `<DB_NAME>_test` from it before every case; they are skipped (or fail with `REQUIRE_DB=1`) when PostgreSQL is unreachable. `.github/workflows/ci.yml` runs `pytest -q` with a PostgreSQL 16 service and the frontend lint/build on every push.
+- **Reason:** BT3 TP2 asks for cases run against the real system with side effects measured, and each case must start from known data; BT2 promised tests without a database, which still holds for the 90 tests that need no database.
+- **Impact:** `tests/bt3/`, `.github/workflows/ci.yml`, README §5, `docs/test-plan.md`, `docs/test-report.md`. The application database is never touched by the tests.

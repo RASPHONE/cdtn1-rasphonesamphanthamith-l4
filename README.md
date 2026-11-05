@@ -89,9 +89,17 @@ Start over from an empty database: `docker compose down -v` then the second comm
 pytest -q
 ```
 
-Expected: `81 passed`. Tests use in-memory fakes (`tests/fakes.py`) and need **no database and no `.env`**.
-The three BT2 test types (happy path · boundary · invalid data) in one file:
-`pytest -v tests/test_bt2_three_types.py`. Frontend checks: `npm run lint` and `npm run build` in `frontend/`.
+Expected: `98 passed`. 90 of them use in-memory fakes (`tests/fakes.py`) and need **no database and
+no `.env`**. The 8 BT3 database cases (`tests/bt3/`) need a reachable PostgreSQL 16 with the DB_*
+values from `.env`; they create and drop their own `<DB_NAME>_test` databases and never touch the
+application data. Without PostgreSQL they are reported as skipped (`90 passed, 8 skipped`).
+With the Docker database (section 4) run `DB_PORT=5433 pytest -q`.
+
+- One Test Report case with its actual-result line: `pytest -s -v tests/bt3 -k tc05`
+  (plan: `docs/test-plan.md`, results: `docs/test-report.md`).
+- The three BT2 test types in one file: `pytest -v tests/test_bt2_three_types.py`.
+- Frontend checks: `npm run lint` and `npm run build` in `frontend/`.
+- CI (`.github/workflows/ci.yml`) runs all of the above on every push, with a PostgreSQL service.
 
 ## 6. Check that it works
 
@@ -134,11 +142,12 @@ db/migrations/           001_init_schema.sql, 002_add_appointment_soft_delete.sq
 scripts/                 migrate.py · seed.py · build_sample.py · docker-entrypoint.sh
 data/sample/             committed sample CSVs
 tools/                   course dataset generators (gen_dataset.py, gen_sample.py)
-tests/                   pytest: fakes.py + service and API tests
+tests/                   pytest: fakes.py + service and API tests · bt3/ = Test Report cases TC-01 … TC-12
 frontend/src/            api/ (only fetch calls) · pages/ (M1, M2, M3, Login) · components/ · hooks/ · labels.js
 docs/                    srs.md · api-contract.md · architecture-thuc-te.md (as built) · thay-doi-thiet-ke.md
-                         ai-disclosure.md · bug-log.md · BT1 diagrams (.drawio) and exports/
-Dockerfile · frontend/Dockerfile · docker-compose.yml
+                         ai-disclosure.md · bug-log.md · test-plan.md · test-report.md · screenshots/
+                         BT1 diagrams (.drawio) and exports/
+Dockerfile · frontend/Dockerfile · docker-compose.yml · .github/workflows/ci.yml
 ```
 
 Naming convention: identifiers we choose are English (`snake_case` in Python, `camelCase`
@@ -151,7 +160,8 @@ on purpose (BT1 feedback). The UI text is Vietnamese.
 
 - [x] BT1 — analysis & design (PDF submitted; design files in `docs/`)
 - [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
-- [ ] BT3 — test plan/report and packaging (tag `v1.0`)
+- [ ] BT3 — test plan/report and packaging (tag `v1.0`) — in progress: Test Plan, Test Report
+  cases TC-01 … TC-12, BUG-011 … BUG-013 fixed, CI (Session 14); packaging and guides next (Session 15)
 
-Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-30) ·
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-35) ·
 bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.

@@ -2,7 +2,11 @@
 
 Template (course, 7 lines): **ID & severity** · **Found by** · **Symptom** · **How to reproduce** ·
 **Root cause** · **Fix** · **Commit & confirmation**.
-Severity: Critical (main flow or grading check blocked) · Major (wrong result, workaround exists) · Minor.
+Severity (BT3 definitions, asked in this order): **Critical** — the system cannot be used, data is
+wrong, or data leaks / there is a security hole · **Major** — an important function is wrong or
+unusable but there is a way around it · **Minor** — presentation or experience only, the business
+result is still right. BUG-001 … BUG-010 were found in BT2 by reviews and runs; BUG-011 onward
+were found by the BT3 Test Report cases (`docs/test-report.md`).
 Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/<sha>`.
 
 ### BUG-001 · Major — first assignment after seeding failed with a duplicate key
@@ -83,5 +87,34 @@ Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commi
 - **Reproduce:** Python 3.14 → `pip install -r requirements.txt` (or `pip download --only-binary=:all: --python-version 3.14 …`).
 - **Root cause:** the pinned `psycopg[binary]==3.2.3` and `pydantic==2.10.3` (→ `pydantic-core 2.27.1`) were released before Python 3.14 and publish no prebuilt wheels for it; pinned versions must have wheels for every Python version the README allows.
 - **Fix:** `psycopg[binary]==3.2.13`, `pydantic==2.13.5` (both publish wheels for 3.11–3.14); FastAPI and the other pins unchanged. One Python 3.14 deprecation warning raised inside FastAPI/Starlette is filtered in `pytest.ini`. README states Python 3.11 – 3.14.
-- **Commit & confirmation:** this commit; fresh virtual environments on Python 3.11, 3.12, 3.13 and 3.14 install with wheels only and pass all 81 tests; on 3.14 migrate, seed (second run +0), API and an assignment work against PostgreSQL 16.
+- **Commit & confirmation:** `6683cf6`; fresh virtual environments on Python 3.11, 3.12, 3.13 and 3.14 install with wheels only and pass all 81 tests; on 3.14 migrate, seed (second run +0), API and an assignment work against PostgreSQL 16.
+
+## BT3 — found by the Test Report cases (Session 14)
+
+### BUG-011 · Critical — anyone could sign a login token with the secret published in the repository
+- **ID & severity:** BUG-011 · CRITICAL — question 1 of the decision tree, *security hole / data leaks* — other centers' customer data readable and changeable.
+- **Found by:** TC-11 (security, OWASP A07/A02).
+- **Symptom:** with the API started as README and Docker say (`cp .env.example .env`), a token that an outsider signs with the `JWT_SECRET` value printed in `.env.example` is accepted: `GET /api/tickets/unassigned` → **200** with center 1's tickets, customer names and phone numbers, for any center the outsider writes into the token. TC-11 first run: `v0.2_.env.example=200`.
+- **Reproduce:** check out `v0.2` → `cp .env.example .env` → start the API → `python -c "import jwt,time; print(jwt.encode({'sub':'x','user_id':1,'role':'CENTER_MANAGER','center_id':1,'exp':int(time.time())+3600}, 'change_me_to_a_long_random_string_32_chars_min', algorithm='HS256'))"` → call any endpoint with that token: 200 every time.
+- **Root cause:** the key that signs tokens must be private, but the public repository shipped a working value in `.env.example` (and another as the default in `src/config.py`), and the documented set-up copies that file unchanged. Nothing checked the key, so every installation following the README signed tokens with a key every reader of the repository knows, and QT-14 (center from the token) could be bypassed.
+- **Fix:** `src/config.py` refuses the two published values and any key shorter than 32 characters at start-up, and an empty `JWT_SECRET` now means a random key per API process (warning in the log; users log in again after a restart). `.env.example` leaves `JWT_SECRET` empty, `docker-compose.yml` no longer requires it, the tests use their own key, README notes how to clear an old `.env`. The set-up stays at two commands.
+- **Commit & confirmation:** [`1692bf4`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/1692bf4dc5309cab5ba1cb7b8100a7d06eeb4eff) · TC-11 re-run: both published secrets → 401, a real login still → 200; new regression tests in `tests/test_config.py` (published or short key refused, empty key → random).
+
+### BUG-012 · Major — "reassigning" a ticket to its current technician was accepted and logged as a change
+- **ID & severity:** BUG-012 · MAJOR — question 2, *an important function is wrong* — the assignment history (QT-07 audit trail) records false changes; there is a way around it (M2 does not offer the current technician), and the ticket itself stays correct, so not Critical.
+- **Found by:** TC-09 (invalid data).
+- **Symptom:** `PATCH /api/tickets/194/assignment` with `{"technician_id": 30, "reason": "Khách yêu cầu giữ nguyên KTV"}` for a ticket already held by technician 30 → **200**, and `ticket_status_log` gained a row (2 → 3) recording a reassignment that did not happen.
+- **Reproduce:** any ticket in `DA_PHAN_CONG`; PATCH its assignment with its own `technician_id` and a valid reason; count `ticket_status_log` rows for the ticket before and after.
+- **Root cause:** `TicketAssignmentService.reassign_technician` checked the reason (QT-07) and the new technician's eligibility (QT-08) but never compared the requested technician with the one already assigned. The only guard was the disabled radio button on screen M2, i.e. the rule lived in the presentation layer only.
+- **Fix:** the service raises `same_technician` (422, "The ticket is already assigned to this technician.") before any write; API contract §3.4 and the validation table list the new code; unit regression test `test_reassign_to_the_current_technician_is_rejected_without_log`.
+- **Commit & confirmation:** [`6e10882`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/6e10882e13dcb05524eaae133ae8c1744c65cf55) · TC-09 re-run: 422 `same_technician`, log rows unchanged.
+
+### BUG-013 · Minor — a body that is not JSON was rejected with a meaningless field name
+- **ID & severity:** BUG-013 · MINOR — neither question 1 nor 2 — the request is still refused with the right status and nothing is saved; only the explanation is wrong.
+- **Found by:** TC-08 (invalid data, message checked).
+- **Symptom:** `POST /api/appointments` with a truncated JSON body → 400 `bad_request` as expected, but the message read "Request data is missing or malformed: 37." and `details[0].field` was `"37"`.
+- **Reproduce:** send `{"ticket_id": 103, "loai": "NHAN_MAY"` (no closing brace) to any POST/PATCH endpoint.
+- **Root cause:** the validation handler in `src/main.py` names fields from Pydantic's error location. For a JSON decode error that location is `("body", <character offset>)`, so the offset of the syntax error was reported as if it were a field.
+- **Fix:** errors of type `json_invalid` get their own response: "Request body is not valid JSON.", `details: [{"field": "body", …}]`; API contract §1 documents it.
+- **Commit & confirmation:** [`fe1fd2f`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/fe1fd2fc11bc5fae2259e9230cf01fabf2f6c3c2) · TC-08 re-run: 400, message "Request body is not valid JSON.", field `body`.
 
