@@ -1,3 +1,9 @@
+import os
+import secrets
+
+# Tests never use the developer's .env secret (it may be an old, refused sample value).
+os.environ["JWT_SECRET"] = "test-" + secrets.token_urlsafe(32)
+
 from datetime import date, datetime, time, timedelta
 
 import pytest

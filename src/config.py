@@ -1,6 +1,17 @@
+import logging
+import secrets
 from functools import lru_cache
 
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Values that were published in this public repository (tag v0.2): a token signed with
+# one of them could be forged by anyone, so the API refuses to start with them.
+PUBLISHED_JWT_SECRETS = frozenset({
+    "change_me_to_a_long_random_string_32_chars_min",   # .env.example in v0.2
+    "dev_only_change_me_in_env",                        # default in this file in v0.2
+})
+MIN_JWT_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -26,7 +37,9 @@ class Settings(BaseSettings):
 
     port: int = 8000
 
-    jwt_secret: str = "dev_only_change_me_in_env"
+    # Empty (the .env.example value) = a random secret per API process: demo logins
+    # stop working when the API restarts. Set 32+ random characters to keep them.
+    jwt_secret: str = Field(default="", validate_default=True)
     access_token_expire_minutes: int = 60
 
     # Business clock for "appointment must be in the future" (US5 AC2).
@@ -36,6 +49,24 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     log_level: str = "INFO"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _jwt_secret_must_be_private(cls, value: str) -> str:
+        if not value:
+            logging.getLogger("l4.config").warning(
+                "JWT_SECRET is not set: using a random secret for this process "
+                "(logins end when the API restarts)."
+            )
+            return secrets.token_urlsafe(48)
+        if value in PUBLISHED_JWT_SECRETS:
+            raise ValueError(
+                "JWT_SECRET is a sample value published in the repository. "
+                "Leave it empty in .env or set your own random string."
+            )
+        if len(value) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_LENGTH} characters.")
+        return value
 
     @property
     def cors_origin_list(self) -> list[str]:

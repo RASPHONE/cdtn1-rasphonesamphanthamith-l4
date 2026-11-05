@@ -25,6 +25,9 @@ Stack: FastAPI (Python) · PostgreSQL 16 · React + Vite. Requirements: `docs/sr
 
 All configuration is in environment variables; every variable is listed with a sample
 value in `.env.example` (backend) and `frontend/.env.example` (frontend). `.env` files are gitignored.
+`JWT_SECRET` (the key that signs login tokens) can stay empty: the API then makes a random
+key each time it starts. A sample value that was published in this repository is refused at
+start-up; if your `.env` was copied before BT3, empty that line (BUG-011).
 
 ## 3. Install and run (native)
 
