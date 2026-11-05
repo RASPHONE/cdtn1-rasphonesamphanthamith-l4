@@ -43,6 +43,7 @@ HTTP_BY_CODE = {
     "technician_not_qualified": 422,
     "ticket_not_assignable": 422,
     "reason_required": 422,
+    "same_technician": 422,
     "appointment_type_deferred": 422,
     "appointment_in_past": 422,
     "invalid_time_range": 422,

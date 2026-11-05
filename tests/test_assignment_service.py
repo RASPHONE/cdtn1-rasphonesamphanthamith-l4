@@ -357,6 +357,22 @@ def test_boundary_reason_with_4_characters_is_rejected():
     assert log_repo.logs == []
 
 
+def test_reassign_to_the_current_technician_is_rejected_without_log():
+    # BUG-012: QT-07 logs a change of technician; the same technician is no change.
+    service, log_repo, _ = make_service(
+        ticket_overrides={"status": "DA_PHAN_CONG", "technician_id": 1}
+    )
+
+    with pytest.raises(AppError) as exc:
+        service.reassign_technician(
+            center_id=1, ticket_id=101,
+            payload=AssignmentUpdate(technician_id=1, reason="Khach yeu cau"), changed_by=1,
+        )
+
+    assert exc.value.code == "same_technician"
+    assert log_repo.logs == []
+
+
 # ---------------------------------------------------------------------------
 # Invalid data (BT2 TP2 type 3)
 # ---------------------------------------------------------------------------

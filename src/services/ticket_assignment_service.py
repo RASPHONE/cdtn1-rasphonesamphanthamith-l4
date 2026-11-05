@@ -167,6 +167,13 @@ class TicketAssignmentService:
 
         reason = self._validate_reason(payload.reason)
 
+        # QT-07 logs a CHANGE of technician; choosing the current one changes nothing.
+        if payload.technician_id == ticket["technician_id"]:
+            raise AppError(
+                "same_technician",
+                "The ticket is already assigned to this technician.",
+            )
+
         technician = self._get_qualified_technician(
             ticket=ticket,
             technician_id=payload.technician_id,

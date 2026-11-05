@@ -119,6 +119,8 @@ mandatory (QT-07).
   characters after trimming. `details: [{"field": "reason", ...}]`.
 - 422 `ticket_not_assignable` — ticket not currently assigned, closed, or changed by
   someone else since it was read (concurrent update guard).
+- 422 `same_technician` — "The ticket is already assigned to this technician." The
+  requested technician already holds the ticket: nothing changes and no log row is written.
 - 422 `technician_not_qualified` (QT-08) · 403 · 404 · 400.
 
 ### 3.5 POST /api/appointments
@@ -302,7 +304,7 @@ Format errors are rejected by the request schemas with `400 bad_request` and a
 
 | Endpoint | Field | Required | Type | Rule | Error code (HTTP) |
 |---|---|---|---|---|---|
-| 3.3 / 3.4 | `technician_id` | yes | int | exists, active, same center, proficiency ≥ 3 (QT-08) | `technician_not_found` (404) · `technician_not_qualified` (422) |
+| 3.3 / 3.4 | `technician_id` | yes | int | exists, active, same center, proficiency ≥ 3 (QT-08); 3.4: not the current technician | `technician_not_found` (404) · `technician_not_qualified` (422) · 3.4: `same_technician` (422) |
 | 3.4 | `reason` | yes (reassign) | string 5–255 after trim | omitted, blank, < 5 or > 255 | `reason_required` (422) |
 | 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.2 | `bad_request` (400) unknown value · `appointment_type_deferred` (422) `KIEM_TRA_TAI_CHO` |
 | 3.5 / 3.6 | `ngay_hen` + `gio_bat_dau` | yes | date + time | strictly after now (APP_TIMEZONE) | `appointment_in_past` (422) |
