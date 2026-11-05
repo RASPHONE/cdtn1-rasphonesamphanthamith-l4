@@ -27,7 +27,8 @@ Companion artifacts: `docs/srs.md` (v0.6), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sq
   `request_id` (500, matches the server log line). Stack traces, SQL and driver
   messages are never returned.
 - Status codes: `200` read/update ok · `201` created · `400` malformed or missing
-  field · `403` cross-center · `404` not found · `409` appointment overlap ·
+  field (a body that is not JSON: `details: [{"field": "body"}]`, message
+  "Request body is not valid JSON.") · `403` cross-center · `404` not found · `409` appointment overlap ·
   `422` business-rule violation (QT-xx / CON-xx) · `500 internal_error` ·
   `503 database_unavailable` (PostgreSQL unreachable).
 - Implementation: `src/routes/` (HTTP), `src/services/` (rules, no HTTP),

@@ -88,6 +88,18 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
+        # A body that is not JSON at all has no field to name: Pydantic reports the
+        # character position as the location, which is meaningless to the caller.
+        if any(error.get("type") == "json_invalid" for error in exc.errors()):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "bad_request",
+                    "message": "Request body is not valid JSON.",
+                    "details": [{"field": "body", "message": "JSON decode error"}],
+                },
+            )
+
         details = []
 
         for error in exc.errors():
