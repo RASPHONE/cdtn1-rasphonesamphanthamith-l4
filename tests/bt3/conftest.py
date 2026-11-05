@@ -10,8 +10,8 @@ Postgres repositories) against a real PostgreSQL 16 database:
   `python scripts/seed.py`), and before EACH test they recreate `<DB_NAME>_test`
   as a copy of it, so every case starts from the same known data
   (Test Plan section 4).
-- When PostgreSQL cannot be reached, these cases are skipped with the reason;
-  the cases without a database still run.
+- When PostgreSQL cannot be reached, these cases are skipped with the reason
+  (with REQUIRE_DB=1, as in CI, they fail instead); the other cases still run.
 
 Every case prints one "observed:" line with the concrete values it saw, so
 `pytest -s -v tests/bt3 -k tc05` shows the actual result for the Test Report.
@@ -73,10 +73,11 @@ def pg_template():
     try:
         admin = _admin_connect(settings)
     except psycopg.OperationalError as exc:
-        pytest.skip(
-            "PostgreSQL not reachable with DB_HOST/DB_PORT/DB_USER/DB_PASSWORD "
-            f"({settings.db_host}:{settings.db_port}): {str(exc).splitlines()[0]}"
-        )
+        reason = ("PostgreSQL not reachable with DB_HOST/DB_PORT/DB_USER/DB_PASSWORD "
+                  f"({settings.db_host}:{settings.db_port}): {str(exc).splitlines()[0]}")
+        if os.environ.get("REQUIRE_DB") == "1":   # CI: a skipped case would hide a missing run
+            pytest.fail(reason)
+        pytest.skip(reason)
     with admin:
         admin.execute(f'DROP DATABASE IF EXISTS "{working}" WITH (FORCE)')
         admin.execute(f'DROP DATABASE IF EXISTS "{template}" WITH (FORCE)')
