@@ -176,3 +176,14 @@ three-line format: **Change** (what) · **Reason** (why) · **Impact** (which co
 - **Reason:** Rubric criterion 3 — documents must match the implementation; found in a document-versus-code review in Session 12.
 - **Impact:** `docs/` text and `.drawio` sources only; no code change.
 
+
+## BT3 — testing (Session 13–14)
+
+*BT2 feedback: not received yet (05/11/2026). When it arrives, each point gets an entry in
+the Session 8 template (Feedback · Decision · Reason · Impact), and any failure the lecturer
+hit while running the repository is also logged as a bug in `docs/bug-log.md`.*
+
+### TD-31 SRS §3.1 "Source" column given one meaning
+- **Change:** The Source column now always names where a requirement comes from. FR6–FR9 (previously "—") cite the case study: FR6 and FR7 the L4 flow scope ("đặt lịch hẹn giao – nhận máy", "kiểm tra trùng lịch"), FR8 problem V3, the L4 scope and the Center Manager interview #1–#2, FR9 is marked *derived* from QT-08, QT-04 and interview #3. FR10–FR12 (added in BT2) cited "BT2 S1" / "BT2 Component 3"; those are course constraints, not business sources, so they are listed in SRS §5 as CC-01 / CC-02 and the FRs cite those IDs. FR6 ("create or update an appointment") is kept as one requirement: both operations act on the same record with the same validation and conflict rule (US5, US6 AC3), unlike two separate capabilities in one sentence.
+- **Reason:** In BT1 the column held only business-rule IDs, so "—" meant "no QT rule"; BT2 added rows with course-constraint sources and the column lost a single meaning. The SRS template allows an optional source column only with one consistent meaning, and constraints from the course should not be mixed with business sources (requirements material, §5). Adding FR10–FR12 after BT1 is recorded in TD-04, TD-06, TD-07 and TD-14.
+- **Impact:** `docs/srs.md` §3.1, §5 and change log (v0.7) only; no code, test or traceability-matrix change.

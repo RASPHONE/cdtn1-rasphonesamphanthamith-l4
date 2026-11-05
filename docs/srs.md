@@ -2,7 +2,7 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.6
+- **Version:** v0.7
 - **BT2 target tag:** v0.2
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
@@ -112,20 +112,26 @@ Role permissions:
 
 ### 3.1 Functional Requirements
 
+**Source** names where each requirement comes from, with one meaning for every row: a
+case-study problem (V2, V3), a business rule (QT-xx), the L4 flow scope in the case study's
+flow catalogue (§7, "L4 scope"), a stakeholder statement (case study §4, "Center Manager
+interview #n"), or a course constraint (CC-xx, listed in §5). "Derived" marks a requirement
+that follows from the cited items without being stated in them.
+
 | ID | Requirement | Source | MoSCoW |
 |---|---|---|---|
-| FR1 | The system shall display warranty tickets with `status = MOI`, `is_warranty = true`, `technician_id IS NULL`, `is_deleted = false`, and `center_id` equal to the manager's service center, sorted ascending by `due_date`. | QT-14 | MUST |
+| FR1 | The system shall display warranty tickets with `status = MOI`, `is_warranty = true`, `technician_id IS NULL`, `is_deleted = false`, and `center_id` equal to the manager's service center, sorted ascending by `due_date`. | V2; QT-14 | MUST |
 | FR2 | The system shall suggest only technicians who belong to the same service center as the ticket, are active, and have proficiency ≥ 3 in the ticket's issue category. | QT-08 | MUST |
 | FR3 | The system shall assign a warranty ticket to at most one technician at any point in time. | QT-07 | MUST |
 | FR4 | The system shall reject any assignment where the selected technician does not satisfy FR2. | QT-08 | MUST |
 | FR5 | The system shall require and store a reason whenever a ticket's assigned technician is changed. | QT-07 | MUST |
-| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.2. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.2 UI. | — | MUST |
-| FR7 | The system shall detect and block saving when a new or updated appointment overlaps in time with an active appointment of the same technician on the same `ngay_hen`. Active statuses are `DA_DAT` and `DA_XAC_NHAN`. | — | MUST |
-| FR8 | The system shall display each qualified technician's current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | — | SHOULD |
-| FR9 | The system shall filter the unassigned ticket list by issue category and priority. | — | SHOULD |
-| FR10 | The system shall allow center managers to maintain technician_skill records for technicians in their own center: list, read, create, update proficiency, and delete. Proficiency must remain between 1 and 5. Duplicate `(technician_id, category_id)` values must be rejected. | QT-08, QT-14, BT2 S1 | SHOULD |
-| FR11 | The system shall allow center managers to read appointment details/lists for their own center and soft-delete active appointments by setting `appointment.is_deleted = true`. Soft-deleted appointments are excluded from default appointment lists and conflict checks. | BT2 S1 | SHOULD |
-| FR12 | The system shall provide minimal demo authentication to derive the caller's `center_id` server-side, enforcing QT-14 center scoping. | BT2 Component 3, QT-14 | MUST |
+| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.2. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.2 UI. | L4 scope ("đặt lịch hẹn giao – nhận máy"); glossary *Lịch hẹn* | MUST |
+| FR7 | The system shall detect and block saving when a new or updated appointment overlaps in time with an active appointment of the same technician on the same `ngay_hen`. Active statuses are `DA_DAT` and `DA_XAC_NHAN`. | L4 scope ("kiểm tra trùng lịch") | MUST |
+| FR8 | The system shall display each qualified technician's current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | V3; L4 scope ("khối lượng công việc hiện tại"); Center Manager interview #1, #2 | SHOULD |
+| FR9 | The system shall filter the unassigned ticket list by issue category and priority. | Derived: QT-08 (eligibility is per issue category), QT-04 (priority sets the SLA); Center Manager interview #3 | SHOULD |
+| FR10 | The system shall allow center managers to maintain technician_skill records for technicians in their own center: list, read, create, update proficiency, and delete. Proficiency must remain between 1 and 5. Duplicate `(technician_id, category_id)` values must be rejected. | CC-01; supports QT-08, scoped by QT-14 | SHOULD |
+| FR11 | The system shall allow center managers to read appointment details/lists for their own center and soft-delete active appointments by setting `appointment.is_deleted = true`. Soft-deleted appointments are excluded from default appointment lists and conflict checks. | CC-01 | SHOULD |
+| FR12 | The system shall provide minimal demo authentication to derive the caller's `center_id` server-side, enforcing QT-14 center scoping. | CC-02; enables QT-14 | MUST |
 
 ### 3.2 User Stories implemented or supported in BT2
 
@@ -249,6 +255,8 @@ Quoted messages are the API `message` texts (or, for UI-only states, their meani
 | CON-04 | `technician_skill.proficiency BETWEEN 1 AND 5` | Structural | Database CHECK |
 | CON-05 | `ticket.status`, `ticket.priority`, and `ticket.is_warranty` are NOT NULL and use allowed technical values. | Structural | Database NOT NULL / CHECK |
 | CON-06 | `appointment.is_deleted` is a boolean flag used for soft delete. Default value is `FALSE`. | Structural | Database default + service layer |
+| CC-01 | BT2 [SE] S1: at least two entities with full CRUD. Met by `appointment` (FR6, FR11) and `technician_skill` (FR10). | Course constraint | API + service layer |
+| CC-02 | BT2 component 3 (TP3): basic login for the presentation module. Met by demo authentication (FR12), which also gives the server the caller's center for QT-14. | Course constraint | `src/security.py`, login screen |
 
 ### Design notes
 
@@ -320,3 +328,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.4.1 | BT2 | Added FR10/FR11 and US12/US13 for BT2 full-CRUD requirement; added appointment soft-delete and technician skill CRUD design notes; normalized BT2 target tag to v0.2. | BT2 [SE] S1 and tag clarification |
 | v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |
 | v0.6 | BT2 finalisation (Session 12) | §1.5 rewritten for the actual committed sample; design notes 8–10 (customer snapshot fixture, concurrent assignment guard, business clock); NFR4/QT-15 masking now implemented in the service layer; supporting read endpoints `GET /api/tickets/{ticket_id}` (US2/US4 summary) and `GET /api/issue-categories` (US8 filter) added to the API contract. Consistency pass: US1 AC3 and NFR3 wording (lists are scoped, direct access returns 403), QT-04 working-day clause restored, matrix FR10 screen and column reads, §1.3 item 5, note on message language. | TD-15 to TD-30 |
+| v0.7 | BT3 (Session 13–14) | §3.1 Source column given one meaning (origin of the requirement) and filled for FR6–FR9 from the case study; FR10–FR12 now cite course constraints CC-01/CC-02, added to §5. | TD-31 |
