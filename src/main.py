@@ -172,7 +172,52 @@ def create_app() -> FastAPI:
             },
         )
 
+    _describe_errors_in_openapi(app)
     return app
+
+
+ERROR_RESPONSE_SCHEMA = {
+    "title": "ErrorResponse",
+    "type": "object",
+    "required": ["error", "message"],
+    "properties": {
+        "error": {"type": "string", "description": "Machine-readable code (docs/api-docs/README.md)."},
+        "message": {"type": "string"},
+        "details": {"type": "array", "description": "Invalid input only: one entry per field.",
+                    "items": {"type": "object", "properties": {"field": {"type": "string"}, "message": {"type": "string"}}}},
+        "conflicts": {"type": "array", "items": {"type": "object"}, "description": "409 appointment_conflict only."},
+        "request_id": {"type": "string", "description": "500 only; the same id is in the server log."},
+    },
+}
+
+
+def _describe_errors_in_openapi(app: FastAPI) -> None:
+    """Make /openapi.json and /docs match what the API really returns for invalid input.
+
+    FastAPI documents a default "422 Validation Error" with its own body on every endpoint
+    that takes input, but validation_error_handler answers 400 with the error envelope.
+    """
+    generate = app.openapi
+
+    def openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = generate()
+        schemas = schema.setdefault("components", {}).setdefault("schemas", {})
+        schemas.pop("HTTPValidationError", None)
+        schemas.pop("ValidationError", None)
+        schemas["ErrorResponse"] = ERROR_RESPONSE_SCHEMA
+        for path_item in schema["paths"].values():
+            for operation in path_item.values():
+                responses = operation.get("responses", {})
+                if responses.pop("422", None) is not None:
+                    responses["400"] = {
+                        "description": "Invalid input (`bad_request`)",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}},
+                    }
+        return schema
+
+    app.openapi = openapi
 
 
 app = create_app()

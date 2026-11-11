@@ -617,3 +617,15 @@ def test_unknown_path_and_wrong_method_use_the_error_envelope(client):
     assert wrong_method.status_code == 405
     assert wrong_method.json()["error"] == "method_not_allowed"
     assert "allow" in {key.lower() for key in wrong_method.headers}
+
+
+def test_openapi_documents_invalid_input_as_400_with_the_error_envelope(client):
+    # The validation handler answers 400 {error, message, details}; the served
+    # specification must not advertise FastAPI's default 422 "Validation Error".
+    spec = client.get("/openapi.json").json()
+    operation = spec["paths"]["/api/appointments"]["post"]
+    assert "422" not in operation["responses"]
+    assert operation["responses"]["400"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ErrorResponse"}
+    assert "HTTPValidationError" not in spec["components"]["schemas"]
+    assert client.post("/api/appointments", json={}, headers=auth_header(client)).status_code == 400
