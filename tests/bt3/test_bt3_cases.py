@@ -245,6 +245,7 @@ PUBLISHED_SECRETS = {
 }
 
 
+@pytest.mark.filterwarnings("ignore::jwt.warnings.InsecureKeyLengthWarning")  # the attacker's short key is the point
 def test_tc11_a07_token_signed_with_a_published_secret_is_rejected(client, monkeypatch):
     """TC-11 · security · OWASP A07 (authentication) / A02 (misconfiguration) / QT-14 · API (fakes).
     The API is configured exactly as README and Docker do it (`cp .env.example .env`); an attacker
