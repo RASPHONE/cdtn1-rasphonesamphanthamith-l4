@@ -5,6 +5,7 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -128,6 +129,16 @@ def create_app() -> FastAPI:
                 "details": details,
             },
         )
+
+    # Errors raised by the framework itself (unknown path 404, wrong method 405) use the
+    # same envelope as every other error (API contract §1), not FastAPI's {"detail": ...}.
+    @app.exception_handler(StarletteHTTPException)
+    async def framework_http_error_handler(request: Request, exc: StarletteHTTPException):
+        codes = {404: ("not_found", "No such endpoint."),
+                 405: ("method_not_allowed", "This method is not allowed on this endpoint.")}
+        error, message = codes.get(exc.status_code, ("http_error", "The request could not be processed."))
+        return JSONResponse(status_code=exc.status_code, content={"error": error, "message": message},
+                            headers=getattr(exc, "headers", None))
 
     @app.exception_handler(DatabaseUnavailableError)
     async def database_unavailable_handler(request: Request, exc: DatabaseUnavailableError):

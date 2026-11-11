@@ -605,3 +605,14 @@ def test_database_down_returns_503_not_raw_error(client):
     assert response.status_code == 503
     assert response.json()["error"] == "database_unavailable"
     assert "connection refused" not in response.text
+
+
+def test_unknown_path_and_wrong_method_use_the_error_envelope(client):
+    # BUG-015: framework 404/405 answered {"detail": ...} instead of the contract envelope.
+    missing = client.get("/api/nope")
+    assert missing.status_code == 404
+    assert missing.json() == {"error": "not_found", "message": "No such endpoint."}
+    wrong_method = client.put("/api/appointments")
+    assert wrong_method.status_code == 405
+    assert wrong_method.json()["error"] == "method_not_allowed"
+    assert "allow" in {key.lower() for key in wrong_method.headers}

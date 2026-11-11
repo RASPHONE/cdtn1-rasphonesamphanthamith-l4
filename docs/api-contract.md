@@ -20,7 +20,8 @@ Companion artifacts: `docs/srs.md` (v0.6), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sq
 - Phone numbers: full for Center Manager / Board of Directors; masked
   `090****567` for every other role (QT-15). Masking is applied in the Service
   layer before the response leaves.
-- Error envelope: `{ "error": "<machine_code>", "message": "<human text>" }`.
+- Error envelope: `{ "error": "<machine_code>", "message": "<human text>" }` — also for an
+  unknown path (`404 not_found`) and a method the path does not accept (`405 method_not_allowed`).
   The `error` code is the contract; `message` is explanatory English text and may be
   reworded. The UI shows its own Vietnamese text per code.
   Optional extras: `details` (list of `{field, message}`), `conflicts` (409) or
