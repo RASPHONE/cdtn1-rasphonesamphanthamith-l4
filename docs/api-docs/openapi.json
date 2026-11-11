@@ -1,0 +1,3536 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mekong Mobile L4",
+    "description": "Technician Assignment and Appointment Scheduling",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "1. Shows that the API runs and whether it can reach the database (used by Docker health checks and the Deployment Guide)",
+        "description": "Shows that the API runs and whether it can reach the database (used by Docker health checks and the Deployment Guide).\n\nRequirement: infrastructure.\n\nNo business data; no authentication so that health checks need no token. A database outage does not make it fail: it answers 200 with `\"database\": \"down\"`.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {},
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "status": "ok",
+                      "database": "up"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "2. Demo login: checks a username and password against table `app_user` (PBKDF2 hashes) and returns a signed token carrying the user's role and center",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "wrong password",
+                  "value": {
+                    "username": "manager2",
+                    "password": "wrong-password"
+                  }
+                },
+                "example2": {
+                  "summary": "success",
+                  "value": {
+                    "username": "manager2",
+                    "password": "manager123"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "access_token": "eyJhbGciOiJIUzI1…(truncated)",
+                      "token_type": "bearer",
+                      "role": "CENTER_MANAGER",
+                      "center_id": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field missing or body not JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_credentials` — unknown user or wrong password — same message for both",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "wrong password",
+                    "value": {
+                      "error": "invalid_credentials",
+                      "message": "Invalid username or password."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Demo login: checks a username and password against table `app_user` (PBKDF2 hashes) and returns a signed token carrying the user's role and center.\n\nRequirement: US14 · FR12.\n\nDemo authentication for the prototype, not a production identity provider. The token is kept in the browser's localStorage by the UI."
+      }
+    },
+    "/api/appointments": {
+      "get": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "11. Lists the caller's center's appointments, newest first, with ticket code and technician name for display (M3)",
+        "operationId": "list_appointments_api_appointments_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "technician_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Technician Id"
+            }
+          },
+          {
+            "name": "ticket_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ticket Id"
+            }
+          },
+          {
+            "name": "ngay_hen",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ngay Hen"
+            }
+          },
+          {
+            "name": "trang_thai",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "DA_DAT",
+                    "DA_XAC_NHAN",
+                    "HOAN_TAT",
+                    "KHACH_HUY",
+                    "KHACH_KHONG_DEN"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trang Thai"
+            }
+          },
+          {
+            "name": "include_deleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Deleted"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentList"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "page": 1,
+                      "page_size": 20,
+                      "total": 1,
+                      "items": [
+                        {
+                          "appointment_id": 900007,
+                          "ticket_id": 8036,
+                          "ticket_code": "BH-008036/2026",
+                          "technician_id": 30,
+                          "technician_ho_ten": "Nguyễn Thị Hạnh",
+                          "center_id": 2,
+                          "loai": "NHAN_MAY",
+                          "trang_thai": "DA_XAC_NHAN",
+                          "ngay_hen": "2026-12-22",
+                          "gio_bat_dau": "14:00:00",
+                          "gio_ket_thuc": "15:00:00",
+                          "is_deleted": false
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — invalid paging or filter value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Lists the caller's center's appointments, newest first, with ticket code and technician name for display (M3).\n\nRequirement: US5, US13 · FR6, FR11.\n\nSoft-deleted appointments are hidden unless `include_deleted=true`. There is no center parameter: only the caller's center is listed."
+      },
+      "post": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "10. Books a device hand-over or receipt appointment for an assigned ticket; refuses a slot that overlaps the technician's active appointments",
+        "operationId": "create_appointment_api_appointments_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentCreate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "success",
+                  "value": {
+                    "ticket_id": 8036,
+                    "loai": "NHAN_MAY",
+                    "ngay_hen": "2026-12-22",
+                    "gio_bat_dau": "14:00",
+                    "gio_ket_thuc": "15:00"
+                  }
+                },
+                "example2": {
+                  "summary": "overlaps the appointment just created",
+                  "value": {
+                    "ticket_id": 8036,
+                    "loai": "GIAO_MAY",
+                    "ngay_hen": "2026-12-22",
+                    "gio_bat_dau": "14:30",
+                    "gio_ket_thuc": "15:30"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentRead"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "appointment_id": 900007,
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "technician_id": 30,
+                      "technician_ho_ten": "Nguyễn Thị Hạnh",
+                      "center_id": 2,
+                      "loai": "NHAN_MAY",
+                      "trang_thai": "DA_XAC_NHAN",
+                      "ngay_hen": "2026-12-22",
+                      "gio_bat_dau": "14:00:00",
+                      "gio_ket_thuc": "15:00:00",
+                      "is_deleted": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field missing or malformed (`details` lists every field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — ticket of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket_not_found` — no such ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`appointment_conflict` — overlap with an active appointment; body adds `conflicts[]`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "overlaps the appointment just created",
+                    "value": {
+                      "error": "appointment_conflict",
+                      "message": "The technician already has an overlapping active appointment.",
+                      "conflicts": [
+                        {
+                          "appointment_id": 900007,
+                          "ticket_id": 8036,
+                          "ngay_hen": "2026-12-22",
+                          "gio_bat_dau": "14:00:00",
+                          "gio_ket_thuc": "15:00:00",
+                          "trang_thai": "DA_XAC_NHAN"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ticket_not_assignable` — ticket without technician, not warranty, or closed; `appointment_type_deferred` — `KIEM_TRA_TAI_CHO` (not available in this version); `appointment_in_past` — start not in the future; `invalid_time_range` — end not after start",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Books a device hand-over or receipt appointment for an assigned ticket; refuses a slot that overlaps the technician's active appointments.\n\nRequirement: US5, US6 · FR6, FR7.\n\nActive = `DA_DAT` or `DA_XAC_NHAN` and not deleted. Two submits for the same free slot at the same instant are not locked (accepted: one manager per center)."
+      }
+    },
+    "/api/appointments/conflicts": {
+      "get": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "9. Checks, before saving, whether a time slot overlaps the technician's active appointments (warning on M3)",
+        "operationId": "check_appointment_conflicts_api_appointments_conflicts_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          },
+          {
+            "name": "ngay_hen",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Ngay Hen"
+            }
+          },
+          {
+            "name": "gio_bat_dau",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "time",
+              "title": "Gio Bat Dau"
+            }
+          },
+          {
+            "name": "gio_ket_thuc",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "time",
+              "title": "Gio Ket Thuc"
+            }
+          },
+          {
+            "name": "exclude_appointment_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exclude Appointment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentConflictList"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "conflicts": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — parameter missing or malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`invalid_time_range` — end not after start (CON-01)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "end before start",
+                    "value": {
+                      "error": "invalid_time_range",
+                      "message": "End time must be after start time."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Checks, before saving, whether a time slot overlaps the technician's active appointments (warning on M3).\n\nRequirement: US6 · FR7.\n\nAdvisory only: saving (endpoints 10 and 13) repeats the check and is authoritative. Slots that only touch (09:00–10:00, 10:00–11:00) do not conflict."
+      }
+    },
+    "/api/appointments/{appointment_id}": {
+      "get": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "12. Returns one appointment",
+        "operationId": "get_appointment_api_appointments__appointment_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "appointment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appointment Id"
+            }
+          },
+          {
+            "name": "include_deleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Deleted"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "appointment_id": 900007,
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "technician_id": 30,
+                      "technician_ho_ten": "Nguyễn Thị Hạnh",
+                      "center_id": 2,
+                      "loai": "NHAN_MAY",
+                      "trang_thai": "DA_XAC_NHAN",
+                      "ngay_hen": "2026-12-22",
+                      "gio_bat_dau": "14:00:00",
+                      "gio_ket_thuc": "15:00:00",
+                      "is_deleted": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `appointment_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — appointment of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`appointment_not_found` — no such appointment, or soft-deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "unknown id",
+                    "value": {
+                      "error": "appointment_not_found",
+                      "message": "Appointment not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one appointment.\n\nRequirement: US5, US13 · FR6, FR11.\n\nRead-only."
+      },
+      "patch": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "13. Changes an appointment's type, day or time, or confirms it; the overlap check runs again",
+        "operationId": "update_appointment_api_appointments__appointment_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "appointment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appointment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentUpdate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "day in the past",
+                  "value": {
+                    "ngay_hen": "2020-01-06"
+                  }
+                },
+                "example2": {
+                  "summary": "success",
+                  "value": {
+                    "gio_bat_dau": "15:00",
+                    "gio_ket_thuc": "16:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "appointment_id": 900007,
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "technician_id": 30,
+                      "technician_ho_ten": "Nguyễn Thị Hạnh",
+                      "center_id": 2,
+                      "loai": "NHAN_MAY",
+                      "trang_thai": "DA_XAC_NHAN",
+                      "ngay_hen": "2026-12-22",
+                      "gio_bat_dau": "15:00:00",
+                      "gio_ket_thuc": "16:00:00",
+                      "is_deleted": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field malformed, or `trang_thai` other than `DA_XAC_NHAN`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — appointment of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`appointment_not_found` — no such appointment, or soft-deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`appointment_conflict` — new slot overlaps (the appointment itself excluded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`appointment_completed_cannot_update` — appointment already `HOAN_TAT`; `appointment_type_deferred` — `KIEM_TRA_TAI_CHO`; `appointment_in_past` — new start not in the future; `invalid_time_range` — end not after start",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "day in the past",
+                    "value": {
+                      "error": "appointment_in_past",
+                      "message": "Appointment time must be in the future."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Changes an appointment's type, day or time, or confirms it; the overlap check runs again.\n\nRequirement: US5, US6 · FR6, FR7.\n\nOnly the fields sent are changed."
+      },
+      "delete": {
+        "tags": [
+          "appointments"
+        ],
+        "summary": "14. Soft-deletes an appointment: the row stays for traceability, flagged `is_deleted`",
+        "operationId": "delete_appointment_api_appointments__appointment_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "appointment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appointment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentDeleted"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "appointment_id": 900007,
+                      "is_deleted": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `appointment_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — appointment of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`appointment_not_found` — no such appointment, or already deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "the same appointment again",
+                    "value": {
+                      "error": "appointment_not_found",
+                      "message": "Appointment not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`appointment_completed_cannot_delete` — appointment already `HOAN_TAT`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Soft-deletes an appointment: the row stays for traceability, flagged `is_deleted`.\n\nRequirement: US13 · FR11.\n\nA deleted appointment no longer counts in conflict checks."
+      }
+    },
+    "/api/technicians/{technician_id}/skills": {
+      "get": {
+        "tags": [
+          "technician_skills"
+        ],
+        "summary": "15. Lists one technician's skills (issue category + proficiency 1–5)",
+        "operationId": "list_technician_skills_api_technicians__technician_id__skills_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianSkillList"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "technician_id": 30,
+                      "items": [
+                        {
+                          "technician_id": 30,
+                          "category_id": 1,
+                          "category_name": "MAN_HINH",
+                          "proficiency": 5
+                        },
+                        {
+                          "technician_id": 30,
+                          "category_id": 5,
+                          "category_name": "NUOC_VAO",
+                          "proficiency": 3
+                        },
+                        "… 3 more items"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `technician_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "technician of center 1",
+                    "value": {
+                      "error": "cross_center_access",
+                      "message": "You cannot access another center's technician."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Lists one technician's skills (issue category + proficiency 1–5).\n\nRequirement: US12 · FR10.\n\nAPI only; no screen in this version."
+      },
+      "post": {
+        "tags": [
+          "technician_skills"
+        ],
+        "summary": "16. Adds a skill to a technician",
+        "operationId": "create_technician_skill_api_technicians__technician_id__skills_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TechnicianSkillCreate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "proficiency 6",
+                  "value": {
+                    "category_id": 6,
+                    "proficiency": 6
+                  }
+                },
+                "example2": {
+                  "summary": "success",
+                  "value": {
+                    "category_id": 6,
+                    "proficiency": 4
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianSkillRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "technician_id": 30,
+                      "category_id": 6,
+                      "category_name": "KHAC",
+                      "proficiency": 4
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field missing or malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician; `category_not_found` — no such category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`skill_already_exists` — the technician already has this category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`proficiency_out_of_range` — not between 1 and 5; `category_inactive` — category not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "proficiency 6",
+                    "value": {
+                      "error": "proficiency_out_of_range",
+                      "message": "Proficiency must be between 1 and 5."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Adds a skill to a technician.\n\nRequirement: US12 · FR10 · QT-08 (input data).\n\nThe new skill counts at once in endpoint 6 (eligibility)."
+      }
+    },
+    "/api/technicians/{technician_id}/skills/{category_id}": {
+      "get": {
+        "tags": [
+          "technician_skills"
+        ],
+        "summary": "17. Returns one skill of a technician",
+        "operationId": "get_technician_skill_api_technicians__technician_id__skills__category_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianSkillRead"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "technician_id": 30,
+                      "category_id": 6,
+                      "category_name": "KHAC",
+                      "proficiency": 4
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `technician_id` or `category_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician; `skill_not_found` — the technician has no skill in this category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one skill of a technician.\n\nRequirement: US12 · FR10.\n\nRead-only."
+      },
+      "patch": {
+        "tags": [
+          "technician_skills"
+        ],
+        "summary": "18. Changes the proficiency of one skill",
+        "operationId": "update_technician_skill_api_technicians__technician_id__skills__category_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TechnicianSkillUpdate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "success",
+                  "value": {
+                    "proficiency": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianSkillRead"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": {
+                      "technician_id": 30,
+                      "category_id": 6,
+                      "category_name": "KHAC",
+                      "proficiency": 5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field missing or malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician; `skill_not_found` — no such skill",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`proficiency_out_of_range` — not between 1 and 5",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Changes the proficiency of one skill.\n\nRequirement: US12 · FR10.\n\nLowering a proficiency below 3 removes the technician from future suggestions for that category; existing assignments are not changed."
+      },
+      "delete": {
+        "tags": [
+          "technician_skills"
+        ],
+        "summary": "19. Removes one skill of a technician",
+        "operationId": "delete_technician_skill_api_technicians__technician_id__skills__category_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "technician_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Technician Id"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "`bad_request` — `technician_id` or `category_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — technician of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`technician_not_found` — no such technician; `skill_not_found` — no such skill",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "the same skill again",
+                    "value": {
+                      "error": "skill_not_found",
+                      "message": "Technician skill not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Removes one skill of a technician.\n\nRequirement: US12 · FR10.\n\nHard delete: a skill is reference data, not a record QT-13 protects."
+      }
+    },
+    "/api/tickets/unassigned": {
+      "get": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "4. Lists the caller's center's open warranty tickets that have no technician yet, most urgent SLA first (screen M1)",
+        "operationId": "list_unassigned_tickets_api_tickets_unassigned_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "CAO",
+                    "TRUNG_BINH",
+                    "THAP"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnassignedTicketList"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "page": 1,
+                      "page_size": 2,
+                      "total": 27,
+                      "items": [
+                        {
+                          "ticket_id": 8060,
+                          "ticket_code": "BH-008060/2026",
+                          "center_id": 2,
+                          "customer_name": "Huỳnh Tuấn Hải",
+                          "customer_phone": "0951863878",
+                          "serial_no": "SN770676887970",
+                          "issue_desc": "kh nói máy vào nước màn hình loang ố khách chưa từng sửa ở đâu",
+                          "category_id": 5,
+                          "category_name": "NUOC_VAO",
+                          "priority": "CAO",
+                          "status": "MOI",
+                          "technician_id": null,
+                          "received_at": "2026-11-10T10:21:22.798870+07:00",
+                          "due_date": "2026-11-11T10:21:22.798870+07:00",
+                          "is_warranty": true
+                        },
+                        {
+                          "ticket_id": 8036,
+                          "ticket_code": "BH-008036/2026",
+                          "center_id": 2,
+                          "customer_name": "Hoàng Đức Hải",
+                          "customer_phone": "0933952111",
+                          "serial_no": "SN644015264013",
+                          "issue_desc": "may bi màn hình xuất hiện vệt mực loang",
+                          "category_id": 1,
+                          "category_name": "MAN_HINH",
+                          "priority": "CAO",
+                          "status": "MOI",
+                          "technician_id": null,
+                          "received_at": "2026-11-10T17:09:22.798870+07:00",
+                          "due_date": "2026-11-11T17:09:22.798870+07:00",
+                          "is_warranty": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — invalid `page`, `page_size`, `category_id` or `priority` (`details` names the field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "unknown priority",
+                    "value": {
+                      "error": "bad_request",
+                      "message": "Request data is missing or malformed: priority.",
+                      "details": [
+                        {
+                          "field": "priority",
+                          "message": "Input should be 'CAO', 'TRUNG_BINH' or 'THAP'"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Lists the caller's center's open warranty tickets that have no technician yet, most urgent SLA first (screen M1).\n\nRequirement: US1, US8 · FR1, FR9 · QT-14, QT-15.\n\nFixed server-side filter: status `MOI`, no technician, warranty, not deleted, caller's center. `customer_phone` is masked (`090****567`) for every role except `CENTER_MANAGER` / `BOARD_OF_DIRECTORS` (QT-15)."
+      }
+    },
+    "/api/tickets/{ticket_id}": {
+      "get": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "5. Returns one ticket's summary for the M2 and M3 headers",
+        "operationId": "get_ticket_api_tickets__ticket_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ticket Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketDetailRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "center_id": 2,
+                      "customer_name": "Hoàng Đức Hải",
+                      "customer_phone": "0933952111",
+                      "serial_no": "SN644015264013",
+                      "issue_desc": "may bi màn hình xuất hiện vệt mực loang",
+                      "category_id": 1,
+                      "category_name": "MAN_HINH",
+                      "priority": "CAO",
+                      "status": "MOI",
+                      "technician_id": null,
+                      "received_at": "2026-11-10T17:09:22.798870+07:00",
+                      "due_date": "2026-11-11T17:09:22.798870+07:00",
+                      "is_warranty": true,
+                      "technician_ho_ten": null,
+                      "closed_at": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `ticket_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — ticket of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "ticket of center 1, caller in center 2",
+                    "value": {
+                      "error": "cross_center_access",
+                      "message": "You cannot access another center's ticket."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket_not_found` — no such ticket, or soft-deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one ticket's summary for the M2 and M3 headers.\n\nRequirement: US2, US4, US5 · FR2, FR6 · QT-14, QT-15.\n\nSame phone masking as endpoint 4."
+      }
+    },
+    "/api/tickets/{ticket_id}/qualified-technicians": {
+      "get": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "6. Suggests only the technicians allowed to take the ticket (same center, active, proficiency ≥ 3 in its category) with their current workload (M2)",
+        "operationId": "list_qualified_technicians_api_tickets__ticket_id__qualified_technicians_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ticket Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualifiedTechnicianList"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "ticket_id": 8036,
+                      "items": [
+                        {
+                          "technician_id": 25,
+                          "technician_code": "KT025",
+                          "ho_ten": "Phan Gia Cường",
+                          "level": "SO_CAP",
+                          "proficiency": 3,
+                          "workload": 20
+                        },
+                        {
+                          "technician_id": 29,
+                          "technician_code": "KT029",
+                          "ho_ten": "Vũ Đức Thắng",
+                          "level": "TRUNG_CAP",
+                          "proficiency": 4,
+                          "workload": 23
+                        },
+                        "… 2 more items"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — `ticket_id` not an integer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — ticket of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket_not_found` — no such ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "unknown ticket",
+                    "value": {
+                      "error": "ticket_not_found",
+                      "message": "Ticket not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ticket_not_assignable` — not a warranty ticket, or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Suggests only the technicians allowed to take the ticket (same center, active, proficiency ≥ 3 in its category) with their current workload (M2).\n\nRequirement: US2, US3 · FR2, FR8 · QT-08.\n\n`workload` = tickets the technician holds in `DA_PHAN_CONG`, `DANG_XU_LY` or `CHO_LINH_KIEN`, counted at query time (never stored)."
+      }
+    },
+    "/api/tickets/{ticket_id}/assignment": {
+      "post": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "7. First assignment of a technician to a new ticket; writes the ticket and its status-log row in one transaction",
+        "operationId": "assign_technician_api_tickets__ticket_id__assignment_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ticket Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentCreate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "technician 5 has proficiency 2",
+                  "value": {
+                    "technician_id": 5
+                  }
+                },
+                "example2": {
+                  "summary": "success",
+                  "value": {
+                    "technician_id": 29
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketAssignmentRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "center_id": 2,
+                      "status": "DA_PHAN_CONG",
+                      "technician_id": 29,
+                      "log_id": 38173
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field missing or malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — ticket of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket_not_found` — no such ticket; `technician_not_found` — no such technician",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`technician_not_qualified` — QT-08 not met (other center, inactive, or proficiency < 3); `ticket_not_assignable` — not `MOI`, already assigned (also by a concurrent request), not warranty, or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "technician 5 has proficiency 2",
+                    "value": {
+                      "error": "technician_not_qualified",
+                      "message": "Technician does not have sufficient proficiency for this category."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "First assignment of a technician to a new ticket; writes the ticket and its status-log row in one transaction.\n\nRequirement: US4 · FR3, FR4 · QT-06, QT-07, QT-08, NFR5.\n\nGuarded UPDATE: of two simultaneous assignments only one succeeds; the other gets 422 and writes nothing."
+      },
+      "patch": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "8. Reassigns an assigned ticket to another eligible technician; the reason is mandatory and logged",
+        "operationId": "reassign_technician_api_tickets__ticket_id__assignment_patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ticket Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentUpdate"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "no reason",
+                  "value": {
+                    "technician_id": 30
+                  }
+                },
+                "example2": {
+                  "summary": "success",
+                  "value": {
+                    "technician_id": 30,
+                    "reason": "Khách yêu cầu đổi KTV"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketAssignmentRead"
+                },
+                "examples": {
+                  "example2": {
+                    "summary": "success",
+                    "value": {
+                      "ticket_id": 8036,
+                      "ticket_code": "BH-008036/2026",
+                      "center_id": 2,
+                      "status": "DA_PHAN_CONG",
+                      "technician_id": 30,
+                      "log_id": 38174
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`bad_request` — field malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`cross_center_access` — ticket of another center",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket_not_found` — no such ticket; `technician_not_found` — no such technician",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`reason_required` — reason omitted, blank, shorter than 5 or longer than 255; `same_technician` — the requested technician already holds the ticket (BUG-012); `technician_not_qualified` — QT-08 not met; `ticket_not_assignable` — ticket not assigned, closed, or changed by someone else meanwhile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "no reason",
+                    "value": {
+                      "error": "reason_required",
+                      "message": "Reason is required when changing technician (5-255 characters).",
+                      "details": [
+                        {
+                          "field": "reason",
+                          "message": "5-255 characters required"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Reassigns an assigned ticket to another eligible technician; the reason is mandatory and logged.\n\nRequirement: US4 · FR5 · QT-07, QT-08.\n\nNothing is written when the request is refused."
+      }
+    },
+    "/api/issue-categories": {
+      "get": {
+        "tags": [
+          "issue_categories"
+        ],
+        "summary": "3. Lists the active issue categories for the M1 filter, read from the database so a new category needs no code change (NFR7)",
+        "operationId": "list_issue_categories_api_issue_categories_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IssueCategoryRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Issue Categories Api Issue Categories Get"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "success",
+                    "value": [
+                      {
+                        "category_id": 1,
+                        "category_name": "MAN_HINH",
+                        "default_priority": "CAO"
+                      },
+                      {
+                        "category_id": 2,
+                        "category_name": "PIN",
+                        "default_priority": "TRUNG_BINH"
+                      },
+                      {
+                        "category_id": 3,
+                        "category_name": "SAC",
+                        "default_priority": "TRUNG_BINH"
+                      },
+                      "… 3 more items"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`unauthorized` — token missing, malformed, expired or signed with another key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`database_unavailable` — PostgreSQL cannot be reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`internal_error` — unexpected error; the body carries a `request_id`, no internal details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "description": "Lists the active issue categories for the M1 filter, read from the database so a new category needs no code change (NFR7).\n\nRequirement: US8 · FR9.\n\nRead-only."
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AppointmentConflict": {
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "title": "Appointment Id"
+          },
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "ngay_hen": {
+            "type": "string",
+            "format": "date",
+            "title": "Ngay Hen"
+          },
+          "gio_bat_dau": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Bat Dau"
+          },
+          "gio_ket_thuc": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Ket Thuc"
+          },
+          "trang_thai": {
+            "type": "string",
+            "title": "Trang Thai"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appointment_id",
+          "ticket_id",
+          "ngay_hen",
+          "gio_bat_dau",
+          "gio_ket_thuc",
+          "trang_thai"
+        ],
+        "title": "AppointmentConflict"
+      },
+      "AppointmentConflictList": {
+        "properties": {
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/AppointmentConflict"
+            },
+            "type": "array",
+            "title": "Conflicts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conflicts"
+        ],
+        "title": "AppointmentConflictList"
+      },
+      "AppointmentCreate": {
+        "properties": {
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "loai": {
+            "type": "string",
+            "enum": [
+              "GIAO_MAY",
+              "NHAN_MAY",
+              "KIEM_TRA_TAI_CHO"
+            ],
+            "title": "Loai"
+          },
+          "ngay_hen": {
+            "type": "string",
+            "format": "date",
+            "title": "Ngay Hen"
+          },
+          "gio_bat_dau": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Bat Dau"
+          },
+          "gio_ket_thuc": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Ket Thuc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket_id",
+          "loai",
+          "ngay_hen",
+          "gio_bat_dau",
+          "gio_ket_thuc"
+        ],
+        "title": "AppointmentCreate"
+      },
+      "AppointmentDeleted": {
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "title": "Appointment Id"
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appointment_id",
+          "is_deleted"
+        ],
+        "title": "AppointmentDeleted"
+      },
+      "AppointmentList": {
+        "properties": {
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AppointmentRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "page",
+          "page_size",
+          "total",
+          "items"
+        ],
+        "title": "AppointmentList"
+      },
+      "AppointmentRead": {
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "title": "Appointment Id"
+          },
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "ticket_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Code"
+          },
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "technician_ho_ten": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technician Ho Ten"
+          },
+          "center_id": {
+            "type": "integer",
+            "title": "Center Id"
+          },
+          "loai": {
+            "type": "string",
+            "title": "Loai"
+          },
+          "trang_thai": {
+            "type": "string",
+            "title": "Trang Thai"
+          },
+          "ngay_hen": {
+            "type": "string",
+            "format": "date",
+            "title": "Ngay Hen"
+          },
+          "gio_bat_dau": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Bat Dau"
+          },
+          "gio_ket_thuc": {
+            "type": "string",
+            "format": "time",
+            "title": "Gio Ket Thuc"
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appointment_id",
+          "ticket_id",
+          "technician_id",
+          "center_id",
+          "loai",
+          "trang_thai",
+          "ngay_hen",
+          "gio_bat_dau",
+          "gio_ket_thuc",
+          "is_deleted"
+        ],
+        "title": "AppointmentRead"
+      },
+      "AppointmentUpdate": {
+        "properties": {
+          "loai": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "GIAO_MAY",
+                  "NHAN_MAY",
+                  "KIEM_TRA_TAI_CHO"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loai"
+          },
+          "trang_thai": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "DA_XAC_NHAN"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trang Thai"
+          },
+          "ngay_hen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ngay Hen"
+          },
+          "gio_bat_dau": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gio Bat Dau"
+          },
+          "gio_ket_thuc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gio Ket Thuc"
+          }
+        },
+        "type": "object",
+        "title": "AppointmentUpdate"
+      },
+      "AssignmentCreate": {
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "technician_id"
+        ],
+        "title": "AssignmentCreate"
+      },
+      "AssignmentUpdate": {
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "technician_id"
+        ],
+        "title": "AssignmentUpdate"
+      },
+      "IssueCategoryRead": {
+        "properties": {
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name"
+          },
+          "default_priority": {
+            "type": "string",
+            "title": "Default Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category_id",
+          "category_name",
+          "default_priority"
+        ],
+        "title": "IssueCategoryRead"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "center_id": {
+            "type": "integer",
+            "title": "Center Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "role",
+          "center_id"
+        ],
+        "title": "LoginResponse"
+      },
+      "QualifiedTechnicianList": {
+        "properties": {
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QualifiedTechnicianRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket_id",
+          "items"
+        ],
+        "title": "QualifiedTechnicianList"
+      },
+      "QualifiedTechnicianRead": {
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "technician_code": {
+            "type": "string",
+            "title": "Technician Code"
+          },
+          "ho_ten": {
+            "type": "string",
+            "title": "Ho Ten"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "proficiency": {
+            "type": "integer",
+            "title": "Proficiency"
+          },
+          "workload": {
+            "type": "integer",
+            "title": "Workload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "technician_id",
+          "technician_code",
+          "ho_ten",
+          "level",
+          "proficiency",
+          "workload"
+        ],
+        "title": "QualifiedTechnicianRead"
+      },
+      "TechnicianSkillCreate": {
+        "properties": {
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "proficiency": {
+            "type": "integer",
+            "title": "Proficiency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category_id",
+          "proficiency"
+        ],
+        "title": "TechnicianSkillCreate"
+      },
+      "TechnicianSkillList": {
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicianSkillRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "technician_id",
+          "items"
+        ],
+        "title": "TechnicianSkillList"
+      },
+      "TechnicianSkillRead": {
+        "properties": {
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name"
+          },
+          "proficiency": {
+            "type": "integer",
+            "title": "Proficiency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "technician_id",
+          "category_id",
+          "category_name",
+          "proficiency"
+        ],
+        "title": "TechnicianSkillRead"
+      },
+      "TechnicianSkillUpdate": {
+        "properties": {
+          "proficiency": {
+            "type": "integer",
+            "title": "Proficiency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proficiency"
+        ],
+        "title": "TechnicianSkillUpdate"
+      },
+      "TicketAssignmentRead": {
+        "properties": {
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "ticket_code": {
+            "type": "string",
+            "title": "Ticket Code"
+          },
+          "center_id": {
+            "type": "integer",
+            "title": "Center Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "technician_id": {
+            "type": "integer",
+            "title": "Technician Id"
+          },
+          "log_id": {
+            "type": "integer",
+            "title": "Log Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket_id",
+          "ticket_code",
+          "center_id",
+          "status",
+          "technician_id",
+          "log_id"
+        ],
+        "title": "TicketAssignmentRead"
+      },
+      "TicketDetailRead": {
+        "properties": {
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "ticket_code": {
+            "type": "string",
+            "title": "Ticket Code"
+          },
+          "center_id": {
+            "type": "integer",
+            "title": "Center Id"
+          },
+          "customer_name": {
+            "type": "string",
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "type": "string",
+            "title": "Customer Phone"
+          },
+          "serial_no": {
+            "type": "string",
+            "title": "Serial No"
+          },
+          "issue_desc": {
+            "type": "string",
+            "title": "Issue Desc"
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "technician_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technician Id"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due Date"
+          },
+          "is_warranty": {
+            "type": "boolean",
+            "title": "Is Warranty"
+          },
+          "technician_ho_ten": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technician Ho Ten"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket_id",
+          "ticket_code",
+          "center_id",
+          "customer_name",
+          "customer_phone",
+          "serial_no",
+          "issue_desc",
+          "category_id",
+          "category_name",
+          "priority",
+          "status",
+          "technician_id",
+          "received_at",
+          "due_date",
+          "is_warranty"
+        ],
+        "title": "TicketDetailRead",
+        "description": "Read-only ticket summary for M2 and M3."
+      },
+      "UnassignedTicketList": {
+        "properties": {
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UnassignedTicketRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "page",
+          "page_size",
+          "total",
+          "items"
+        ],
+        "title": "UnassignedTicketList"
+      },
+      "UnassignedTicketRead": {
+        "properties": {
+          "ticket_id": {
+            "type": "integer",
+            "title": "Ticket Id"
+          },
+          "ticket_code": {
+            "type": "string",
+            "title": "Ticket Code"
+          },
+          "center_id": {
+            "type": "integer",
+            "title": "Center Id"
+          },
+          "customer_name": {
+            "type": "string",
+            "title": "Customer Name"
+          },
+          "customer_phone": {
+            "type": "string",
+            "title": "Customer Phone"
+          },
+          "serial_no": {
+            "type": "string",
+            "title": "Serial No"
+          },
+          "issue_desc": {
+            "type": "string",
+            "title": "Issue Desc"
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "technician_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technician Id"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due Date"
+          },
+          "is_warranty": {
+            "type": "boolean",
+            "title": "Is Warranty"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket_id",
+          "ticket_code",
+          "center_id",
+          "customer_name",
+          "customer_phone",
+          "serial_no",
+          "issue_desc",
+          "category_id",
+          "category_name",
+          "priority",
+          "status",
+          "technician_id",
+          "received_at",
+          "due_date",
+          "is_warranty"
+        ],
+        "title": "UnassignedTicketRead"
+      },
+      "ErrorResponse": {
+        "title": "ErrorResponse",
+        "type": "object",
+        "required": [
+          "error",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable code (docs/api-docs/README.md)."
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "description": "Invalid input only: one entry per field.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "409 appointment_conflict only."
+          },
+          "request_id": {
+            "type": "string",
+            "description": "500 only; the same id is in the server log."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/auth/login"
+          }
+        }
+      }
+    }
+  }
+}
