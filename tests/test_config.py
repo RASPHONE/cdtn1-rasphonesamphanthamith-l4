@@ -20,3 +20,18 @@ def test_empty_secret_becomes_a_random_one_per_process():
     first = Settings(_env_file=None, jwt_secret="").jwt_secret
     second = Settings(_env_file=None, jwt_secret="").jwt_secret
     assert len(first) >= 32 and first != second
+
+
+def test_token_without_expiry_or_center_is_refused(client):
+    import jwt as pyjwt
+
+    from src.config import get_settings
+
+    secret = get_settings().jwt_secret
+    base = {"sub": "manager1", "user_id": 1, "role": "CENTER_MANAGER", "center_id": 1}
+    for drop in ("exp", "center_id"):
+        claims = {**base, "exp": 4102444800}
+        claims.pop(drop)
+        token = pyjwt.encode(claims, secret, algorithm="HS256")
+        response = client.get("/api/tickets/unassigned", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 401, drop

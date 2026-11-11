@@ -18,7 +18,12 @@ def get_current_token_payload(token: str = Depends(oauth2_scheme)) -> dict:
     settings = get_settings()
 
     try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        # Only HS256 is accepted, and a token without an expiry or without the claims the
+        # API reads is refused with 401 (it would otherwise fail later with a 500).
+        return jwt.decode(
+            token, settings.jwt_secret, algorithms=["HS256"],
+            options={"require": ["exp", "sub", "user_id", "role", "center_id"]},
+        )
     except jwt.ExpiredSignatureError:
         raise AppError("unauthorized", "Token has expired.")
     except jwt.PyJWTError:

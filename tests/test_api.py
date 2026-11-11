@@ -502,7 +502,8 @@ def make_token(role, center_id=1, user_id=9):
 
     from src.config import get_settings
 
-    payload = {"sub": "test", "user_id": user_id, "role": role, "center_id": center_id}
+    payload = {"sub": "test", "user_id": user_id, "role": role, "center_id": center_id,
+               "exp": 4102444800}  # 2100-01-01: tokens without an expiry are refused
     token = jwt.encode(payload, get_settings().jwt_secret, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 
