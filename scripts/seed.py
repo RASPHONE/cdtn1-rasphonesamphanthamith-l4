@@ -59,7 +59,7 @@ def seed():
     with get_connection() as conn:
         with conn.cursor() as cur:
             # Dataset timestamps have no zone: read them as business local time.
-            cur.execute(f"SET TIME ZONE '{settings.app_timezone}'")
+            cur.execute("SELECT set_config('TimeZone', %s, false)", (settings.app_timezone,))
 
             counts_before = count_rows(cur)
 
