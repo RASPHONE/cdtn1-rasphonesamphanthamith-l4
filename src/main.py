@@ -30,6 +30,14 @@ def configure_logging() -> None:
     )
 
 
+def internal_error_response(request_id: str) -> JSONResponse:
+    # The stack trace goes to the server log only, never to the client (S4).
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "message": "Unexpected server error.", "request_id": request_id},
+    )
+
+
 def create_app() -> FastAPI:
     configure_logging()
     settings = get_settings()
@@ -58,7 +66,14 @@ def create_app() -> FastAPI:
         request_id = uuid.uuid4().hex[:12]
         request.state.request_id = request_id
         started = time.perf_counter()
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # Handled here, not only by the Exception handler below: that handler runs
+            # outside this middleware, so its 500 had no X-Request-ID header and no
+            # request log line (BUG-016).
+            logger.exception("request_id=%s unhandled error", request_id)
+            response = internal_error_response(request_id)
         elapsed_ms = (time.perf_counter() - started) * 1000
         response.headers["X-Request-ID"] = request_id
         logger.info(
@@ -160,17 +175,10 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception):
+        # Last resort (an error outside request_log); normally request_log answers first.
         request_id = getattr(request.state, "request_id", "-")
-        # Full stack trace goes to the server log only, never to the client.
         logger.exception("request_id=%s unhandled error", request_id)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "internal_error",
-                "message": "Unexpected server error.",
-                "request_id": request_id,
-            },
-        )
+        return internal_error_response(request_id)
 
     _describe_errors_in_openapi(app)
     return app

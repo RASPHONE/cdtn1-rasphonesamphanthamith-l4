@@ -629,3 +629,30 @@ def test_openapi_documents_invalid_input_as_400_with_the_error_envelope(client):
         "$ref": "#/components/schemas/ErrorResponse"}
     assert "HTTPValidationError" not in spec["components"]["schemas"]
     assert client.post("/api/appointments", json={}, headers=auth_header(client)).status_code == 400
+
+
+def test_unexpected_error_returns_500_without_internal_details(client):
+    # S4 / checklist item 5: an unexpected exception reaches the client as the error envelope
+    # with a request id only; the exception text (SQL, table names, settings) stays in the log.
+    from fastapi.testclient import TestClient
+
+    from src.main import app
+    from src.routes.tickets import get_ticket_assignment_service
+
+    class BrokenService:
+        def list_unassigned_tickets(self, **kwargs):
+            raise RuntimeError('relation "ticket" does not exist; host=db password=postgres')
+
+    headers = auth_header(client)
+    app.dependency_overrides[get_ticket_assignment_service] = lambda: BrokenService()
+    raw_client = TestClient(app, raise_server_exceptions=False)
+
+    response = raw_client.get("/api/tickets/unassigned", headers=headers)
+
+    assert response.status_code == 500
+    body = response.json()
+    assert set(body) == {"error", "message", "request_id"}
+    assert body["error"] == "internal_error"
+    assert body["request_id"] == response.headers["X-Request-ID"]
+    for leaked in ("relation", "ticket", "password", "Traceback", "RuntimeError"):
+        assert leaked not in response.text
