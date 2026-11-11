@@ -5,8 +5,9 @@ Template (course, 7 lines): **ID & severity** · **Found by** · **Symptom** · 
 Severity (BT3 definitions, asked in this order): **Critical** — the system cannot be used, data is
 wrong, or data leaks / there is a security hole · **Major** — an important function is wrong or
 unusable but there is a way around it · **Minor** — presentation or experience only, the business
-result is still right. BUG-001 … BUG-010 were found in BT2 by reviews and runs; BUG-011 onward
-were found by the BT3 Test Report cases (`docs/test-report.md`).
+result is still right. BUG-001 … BUG-010 were found in BT2 by reviews and runs; BUG-011 … BUG-013
+by the BT3 Test Report cases (`docs/test-report.md`); BUG-014 … BUG-016 while filling the
+security checklist by running it (`docs/checklist-bao-mat.md`).
 Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/<sha>`.
 
 ### BUG-001 · Major — first assignment after seeding failed with a duplicate key
@@ -118,3 +119,31 @@ Commit links: `https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commi
 - **Fix:** errors of type `json_invalid` get their own response: "Request body is not valid JSON.", `details: [{"field": "body", …}]`; API contract §1 documents it.
 - **Commit & confirmation:** [`fe1fd2f`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/fe1fd2fc11bc5fae2259e9230cf01fabf2f6c3c2) · TC-08 re-run: 400, message "Request body is not valid JSON.", field `body` (screenshots `TC-08-run1.png` → `TC-08.png`).
 
+## BT3 — found by the security checklist (Session 15)
+
+### BUG-014 · Critical — demo passwords were kept in plain text in the source code
+- **ID & severity:** BUG-014 · CRITICAL — question 1 of the decision tree, *security hole* — credentials stored and compared in clear (OWASP A04/A07, BT3 S3); changing a password meant writing the new one into the public repository.
+- **Found by:** security checklist item 4 ("passwords hashed"): the check `SELECT password_hash FROM <users table>` could not be run because there was no users table.
+- **Symptom:** `src/services/auth_service.py` held `DEMO_USERS = {"manager1": {"password": "manager123", …}, …}` and `login()` compared `user["password"] != password`; nothing anywhere stored a hash.
+- **Reproduce:** check out `b58fb4a` → `grep -n '"password"' src/services/auth_service.py` → two plain-text passwords; `psql … -c "\dt"` → no user table.
+- **Root cause:** the BT2 demo login (TD-07) kept its two accounts as a constant to stay small ("in a real system, these would be in a `users` table with hashed passwords"), and BT2 did not check password storage; S3 in BT3 requires hashes in the database.
+- **Fix:** migration `003_add_app_user.sql` creates `app_user` with a `CHECK` that only accepts `pbkdf2_sha256$…` values; `seed.py` creates the two accounts from `DEMO_PASSWORD` hashed with PBKDF2-SHA256 (600,000 iterations, random salt); `AuthService` reads the account through `PostgresUserRepository` and compares in constant time, checking a dummy hash for unknown usernames. Tests: `test_password_storage.py` (4), `bt3/test_password_storage_db.py` (2).
+- **Commit & confirmation:** [`2240727`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/224072743ac5c29032b9cd0ef62ce5bdc12ff567) · `SELECT username, left(password_hash, 48) FROM app_user` → `pbkdf2_sha256$600000$…` for both accounts; login with `manager123` still 200, wrong password 401; a plain-text insert is refused by the database (screenshot `sec-4.png`).
+
+### BUG-015 · Minor — unknown paths and wrong methods answered outside the error format
+- **ID & severity:** BUG-015 · MINOR — neither question 1 nor 2 — the status code was right and nothing leaked; only the body did not follow the API contract.
+- **Found by:** security checklist item 5 ("error messages reveal nothing internal"), calling a path that does not exist.
+- **Symptom:** `GET /api/nope` → 404 `{"detail": "Not Found"}` and `PUT /api/appointments` → 405 `{"detail": "Method Not Allowed"}`, while every other error is `{"error", "message"}` (API contract §1); the UI's error handling reads `error`.
+- **Reproduce:** `curl -s http://localhost:8000/api/nope` on `b58fb4a`.
+- **Root cause:** `src/main.py` mapped `AppError`, validation errors, database errors and unexpected exceptions to the envelope, but not the HTTP errors raised by the framework's router itself (Starlette `HTTPException`).
+- **Fix:** a handler for Starlette's `HTTPException` answers `404 not_found` "No such endpoint." and `405 method_not_allowed` (keeping the `Allow` header); API contract §1 lists both. Regression test `test_unknown_path_and_wrong_method_use_the_error_envelope`.
+- **Commit & confirmation:** [`3804e6c`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/3804e6c2e3ac456043a1dc4fb45792080ccfd779) · `GET /api/nope` → 404 `{"error":"not_found","message":"No such endpoint."}` (screenshot `sec-5.png`).
+
+### BUG-016 · Minor — a 500 response could not be matched to its log line by header
+- **ID & severity:** BUG-016 · MINOR — neither question 1 nor 2 — the client still got a safe 500 with a `request_id` in the body; only the operator's tracing was incomplete.
+- **Found by:** security checklist item 5, writing the test for an unexpected error (`test_unexpected_error_returns_500_without_internal_details`).
+- **Symptom:** an unexpected exception answered 500 `{"error": "internal_error", …, "request_id": …}` but without the `X-Request-ID` header that every other response carries, and the request log had no `status=500` line for it.
+- **Reproduce:** make a service raise `RuntimeError` (as the test does) and read the response headers and the log: header missing, only the stack trace line.
+- **Root cause:** the handler for `Exception` runs in Starlette's outermost error middleware, outside the `request_log` middleware that sets the header and writes the request line; the exception left `call_next` and skipped both.
+- **Fix:** `request_log` catches the exception itself, logs the stack trace with the request id and returns the same 500 envelope, so the header and the request line are written; the `Exception` handler stays as a last resort.
+- **Commit & confirmation:** [`354f526`](https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4/commit/354f526a5a76bcef5005e2ed0f5bc25401565e0b) · the new test fails on the previous commit and passes now; log shows `request_id=… unhandled error` and `request_id=… status=500` with the same id.
