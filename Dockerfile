@@ -13,13 +13,19 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Unprivileged user (no root inside the container).
-RUN useradd --create-home --uid 10001 app
+# Unprivileged user (no root inside the container). It owns /app only so that
+# pytest can keep its cache there; the code itself stays read-only (owned by root).
+RUN useradd --create-home --uid 10001 app && chown app:app /app
 
 COPY src ./src
 COPY scripts ./scripts
 COPY db ./db
 COPY data/sample ./data/sample
+# Tests ship in the image so the full suite runs where the system runs (BT3 C3):
+#   docker compose exec api pytest -q
+# .env.example is read by TC-11 (it checks the API as configured from that file).
+COPY tests ./tests
+COPY pytest.ini .env.example ./
 
 USER app
 EXPOSE 8000

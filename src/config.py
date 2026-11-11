@@ -1,4 +1,3 @@
-import logging
 import secrets
 from functools import lru_cache
 
@@ -12,6 +11,7 @@ PUBLISHED_JWT_SECRETS = frozenset({
     "dev_only_change_me_in_env",                        # default in this file in v0.2
 })
 MIN_JWT_SECRET_LENGTH = 32
+RANDOM_JWT_SECRET_IN_USE = False
 
 
 class Settings(BaseSettings):
@@ -56,10 +56,8 @@ class Settings(BaseSettings):
     @classmethod
     def _jwt_secret_must_be_private(cls, value: str) -> str:
         if not value:
-            logging.getLogger("l4.config").warning(
-                "JWT_SECRET is not set: using a random secret for this process "
-                "(logins end when the API restarts)."
-            )
+            global RANDOM_JWT_SECRET_IN_USE
+            RANDOM_JWT_SECRET_IN_USE = True   # src/main.py logs this once at API start-up
             return secrets.token_urlsafe(48)
         if value in PUBLISHED_JWT_SECRETS:
             raise ValueError(

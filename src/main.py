@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from src import config
 from src.config import get_settings
 from src.db import DatabaseUnavailableError
 from src.errors import HTTP_BY_CODE, AppError
@@ -32,11 +33,14 @@ def configure_logging() -> None:
 def create_app() -> FastAPI:
     configure_logging()
     settings = get_settings()
+    if config.RANDOM_JWT_SECRET_IN_USE:
+        logger.warning("JWT_SECRET is not set: using a random secret for this process "
+                       "(logins end when the API restarts).")
 
     app = FastAPI(
         title="Mekong Mobile L4",
         description="Technician Assignment and Appointment Scheduling",
-        version="0.2.0",
+        version="1.0.0",
     )
 
     app.add_middleware(
