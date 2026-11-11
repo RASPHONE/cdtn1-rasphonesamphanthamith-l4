@@ -282,6 +282,7 @@ def test_tc12_second_migrate_and_seed_change_nothing(pg):
     after = {row["t"]: row["n"] for row in pg["query"](count_sql)}
     added = dict(re.findall(r"^\s+(\w+)\s+\+(\d+)", seed_out, re.M))
     observe("TC-12", migrate=migrate_out.strip().splitlines()[-1], added=added, totals=after)
-    assert "0 applied, 2 already up to date" in migrate_out
+    migrations = len(list((ROOT / "db" / "migrations").glob("[0-9][0-9][0-9]_*.sql")))
+    assert f"0 applied, {migrations} already up to date" in migrate_out
     assert added and set(added.values()) == {"0"}
     assert after == before

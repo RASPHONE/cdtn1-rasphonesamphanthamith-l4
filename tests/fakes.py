@@ -260,3 +260,20 @@ class FakeAppointmentRepository:
                     }
                 )
         return sorted(conflicts, key=lambda c: c["gio_bat_dau"])
+
+
+class FakeUserRepository:
+    """Demo accounts as stored in app_user: hashed passwords only (BUG-014).
+    Low iteration count keeps the tests fast; the count is part of the stored string."""
+
+    def __init__(self, password="manager123", iterations=1_000):
+        from src.services.password_hashing import hash_password
+
+        self.users = {
+            name: {"user_id": uid, "username": name, "role": "CENTER_MANAGER", "center_id": center,
+                   "password_hash": hash_password(password, iterations)}
+            for uid, name, center in ((1, "manager1", 1), (2, "manager2", 2))
+        }
+
+    def get_active_by_username(self, username):
+        return self.users.get(username)

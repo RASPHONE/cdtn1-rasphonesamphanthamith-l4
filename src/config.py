@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # stop working when the API restarts. Set 32+ random characters to keep them.
     jwt_secret: str = Field(default="", validate_default=True)
     access_token_expire_minutes: int = 60
+    # Password given to the demo accounts by scripts/seed.py (stored hashed only).
+    demo_password: str = "manager123"
 
     # Business clock for "appointment must be in the future" (US5 AC2).
     app_timezone: str = "Asia/Ho_Chi_Minh"

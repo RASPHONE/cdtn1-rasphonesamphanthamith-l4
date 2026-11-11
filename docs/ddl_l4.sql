@@ -1,5 +1,6 @@
 -- docs/ddl_l4.sql — L4 DDL skeleton (PostgreSQL 16), BT1 design + BT2 soft delete (TD-05)
--- Design document. The executable schema is db/migrations/001_*.sql + 002_*.sql
+-- + BT3 login accounts with hashed passwords (app_user, TD-37 / BUG-014)
+-- Design document. The executable schema is db/migrations/001_*.sql … 003_*.sql
 -- (scripts/migrate.py); both produce the same schema (TD-15).
 -- Every table/column serves an FR/QT cited in comments (reverse traceability).
 -- External master data (customer, device/product, service_center, employee)
@@ -103,3 +104,15 @@ CREATE INDEX IF NOT EXISTS idx_appointment_active_overlap
     WHERE is_deleted = FALSE
         AND trang_thai IN ('DA_DAT', 'DA_XAC_NHAN');                                   -- FR7 / US6 / US13
 CREATE INDEX IF NOT EXISTS idx_log_ticket ON ticket_status_log (ticket_id, changed_at);           -- QT-06 audit
+
+-- BT3: demo login accounts, passwords stored only as PBKDF2 hashes (TD-37, BUG-014)
+CREATE TABLE IF NOT EXISTS app_user (                            -- FR12, QT-14
+    user_id        BIGINT       PRIMARY KEY,
+    username       VARCHAR(50)  NOT NULL UNIQUE,
+    password_hash  VARCHAR(255) NOT NULL,
+    role           VARCHAR(30)  NOT NULL,
+    center_id      BIGINT       NOT NULL,                        -- QT-14: written into the token
+    is_active      BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_app_user_role CHECK (role IN ('CENTER_MANAGER', 'TECHNICIAN')),
+    CONSTRAINT chk_app_user_password_hash CHECK (password_hash LIKE 'pbkdf2_sha256$%')
+);

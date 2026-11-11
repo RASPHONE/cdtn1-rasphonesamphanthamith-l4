@@ -16,7 +16,9 @@ from src.routes.tickets import get_ticket_assignment_service
 from src.services.appointment_service import AppointmentService
 from src.services.technician_skill_service import TechnicianSkillService
 from src.services.ticket_assignment_service import TicketAssignmentService
+from src.routes.auth import get_auth_service
 from src.routes.issue_categories import get_issue_category_service
+from src.services.auth_service import AuthService
 from src.services.issue_category_service import IssueCategoryService
 from tests.fakes import (
     FakeAppointmentRepository,
@@ -25,6 +27,7 @@ from tests.fakes import (
     FakeTechnicianSkillRepository,
     FakeTicketRepository,
     FakeTicketStatusLogRepository,
+    FakeUserRepository,
     fake_transaction,
 )
 
@@ -227,6 +230,7 @@ def client(fake_repos, monkeypatch):
         get_ticket_assignment_service
     ] = override_ticket_assignment_service
     app.dependency_overrides[get_issue_category_service] = override_issue_category_service
+    app.dependency_overrides[get_auth_service] = lambda: AuthService(user_repository=FakeUserRepository())
 
     # /health pings the database; pretend it is up so tests never need PostgreSQL.
     monkeypatch.setattr("src.routes.health.ping", lambda: True)

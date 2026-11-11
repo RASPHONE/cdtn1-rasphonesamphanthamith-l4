@@ -4,33 +4,25 @@ import jwt
 
 from src.config import get_settings
 from src.errors import AppError
-
-
-# Minimal demo users for the BT2 prototype.
-# In a real system, these would be in a `users` table with hashed passwords.
-DEMO_USERS = {
-    "manager1": {
-        "user_id": 1,
-        "username": "manager1",
-        "password": "manager123",
-        "role": "CENTER_MANAGER",
-        "center_id": 1,
-    },
-    "manager2": {
-        "user_id": 2,
-        "username": "manager2",
-        "password": "manager123",
-        "role": "CENTER_MANAGER",
-        "center_id": 2,
-    },
-}
+from src.services.password_hashing import verify_against_dummy, verify_password
 
 
 class AuthService:
-    def login(self, username: str, password: str) -> dict:
-        user = DEMO_USERS.get(username)
+    """Demo login (FR12). Accounts live in table app_user with hashed passwords only."""
 
-        if not user or user["password"] != password:
+    def __init__(self, user_repository):
+        self.user_repo = user_repository
+
+    def login(self, username: str, password: str) -> dict:
+        user = self.user_repo.get_active_by_username(username)
+
+        if user is None:
+            verify_against_dummy(password)
+            valid = False
+        else:
+            valid = verify_password(password, user["password_hash"])
+
+        if not valid:
             raise AppError(
                 "invalid_credentials",
                 "Invalid username or password.",

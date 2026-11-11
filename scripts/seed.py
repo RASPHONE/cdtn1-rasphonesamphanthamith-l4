@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.config import get_settings  # noqa: E402
 from src.db import DatabaseUnavailableError, get_connection  # noqa: E402
+from src.services.password_hashing import hash_password  # noqa: E402
 
 SAMPLE = ROOT / "data" / "sample"
 SLA_HOURS = {"CAO": 24, "TRUNG_BINH": 72, "THAP": 120}   # QT-04 (calendar hours, as in the dataset)
@@ -24,7 +25,10 @@ DEMO_APPOINTMENT_FIRST_ID = 900001
 DEMO_SLOTS = [("09:00", "10:00"), ("14:00", "15:00"), ("10:00", "12:00")]
 
 TABLES = ["issue_category", "technician", "technician_skill", "ticket",
-          "ticket_status_log", "appointment"]
+          "ticket_status_log", "appointment", "app_user"]
+# Demo login accounts (FR12): one center manager per demo center. The password is the
+# documented demo password (DEMO_PASSWORD, default "manager123"); only its hash is stored.
+DEMO_ACCOUNTS = [(1, "manager1", "CENTER_MANAGER", 1), (2, "manager2", "CENTER_MANAGER", 2)]
 
 
 def rows(name):
@@ -132,6 +136,7 @@ def seed():
 
             insert_demo_appointments(cur, tickets, now)
             sync_sequences(cur)
+            insert_demo_accounts(cur, settings.demo_password)
 
             counts_after = count_rows(cur)
 
@@ -162,6 +167,20 @@ def insert_demo_appointments(cur, tickets, now):
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (appointment_id) DO NOTHING""",
         demo,
     )
+
+
+def insert_demo_accounts(cur, password):
+    """Hash computed only for accounts that do not exist yet, so a re-run changes nothing."""
+    cur.execute("SELECT username FROM app_user")
+    existing = {row["username"] for row in cur.fetchall()}
+    for user_id, username, role, center_id in DEMO_ACCOUNTS:
+        if username in existing:
+            continue
+        cur.execute(
+            """INSERT INTO app_user (user_id, username, password_hash, role, center_id)
+               VALUES (%s, %s, %s, %s, %s) ON CONFLICT (user_id) DO NOTHING""",
+            (user_id, username, hash_password(password), role, center_id),
+        )
 
 
 def sync_sequences(cur):

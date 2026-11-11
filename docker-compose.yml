@@ -33,6 +33,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:-}   # empty = random key per start (see .env.example)
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-manager123}   # demo accounts, stored hashed
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
       CORS_ORIGINS: http://localhost:${WEB_PORT:-5173},http://127.0.0.1:${WEB_PORT:-5173}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
