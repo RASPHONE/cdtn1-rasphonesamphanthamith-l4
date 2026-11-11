@@ -1,7 +1,8 @@
 # `docs/test-plan.md` — Test Plan (L4, track SE, BT3)
 
 Flow **L4 — Technician Assignment & Appointment Scheduling** · system as tagged `v0.2`
-plus BT3 changes · written in Session 14 (05/11/2026). Results: `docs/test-report.md` ·
+plus BT3 changes · written in Session 14 (05/11/2026), test counts and environment updated
+for tag `v1.0` (Session 15–16). Results: `docs/test-report.md` ·
 bugs: `docs/bug-log.md` · cases in code: `tests/bt3/test_bt3_cases.py`.
 
 ## 1. Scope
@@ -42,8 +43,10 @@ grading steps exercise (rejecting bad input, re-running the data load):
 | API + PostgreSQL (integration) | Routes → services → SQL repositories on a fresh copy of the sample | TC-01 – TC-05, TC-09, TC-10 | 7 |
 | System | The real `migrate.py` / `seed.py` commands | TC-12 | 1 |
 
-The base of the pyramid is the **81 unit and API tests from BT2** (`tests/test_*.py`,
-in-memory fakes, no database). They run with the same command and act as regression tests.
+The base of the pyramid is the **81 unit and API tests from BT2** plus 13 regression tests
+added with the BT3 fixes (`tests/test_*.py`, 94 tests, in-memory fakes, no database), and 4
+database security tests (`tests/bt3/test_password_storage_db.py`, `test_injection_db.py`,
+security checklist items 2 and 4). Everything runs with the same command: **110 tests**.
 The report cases lean on the database because QT-14, FR7 and the assignment guard are
 enforced partly in SQL: only a real database shows that no extra row was written.
 
@@ -80,10 +83,10 @@ invalid data ×2 (TC-08, TC-09; status code **and** message checked) · security
 
 | Item | Value |
 |---|---|
-| Runtime | Python 3.11–3.14 virtual environment from `requirements.txt` (README §3) |
+| Runtime | Python 3.11–3.14 virtual environment from `requirements.txt` (README §3), or the api container of `docker compose` (Python 3.12.7, tests included in the image) |
 | Database | PostgreSQL 16: a local server with the DB_* values from `.env`, or the Docker one (`docker compose up -d db`, then `DB_PORT=5433` because Docker publishes it on host port 5433) |
 | Data | The committed sample `data/sample/` (fixed ids). Cases use ticket BH-008036/2026 (center 2, MOI, category 1), BH-000194/2025 (center 2, assigned to technician 30), technicians 5, 8, 25, 29, 30, and demo appointment 900004 (center 2) |
 | Set-up | Once per run, the tests create `<DB_NAME>_test_tpl` with the real `python scripts/migrate.py` and `python scripts/seed.py`. **Before every database case** they recreate `<DB_NAME>_test` as a copy of it, so no case depends on another or on leftover data. Both databases are dropped at the end; the application database is never touched |
 | Unit / API cases | In-memory fakes (`tests/fakes.py`); no database, no `.env` |
-| Commands | All cases: `pytest -q` · one case with its actual-result line: `pytest -s -v tests/bt3 -k tc05` |
+| Commands | All tests: `pytest -q`, or in Docker `docker compose exec api pytest -q` · one case with its actual-result line: `pytest -s -v tests/bt3 -k tc05` (Docker: `docker compose exec api pytest -s -v tests/bt3 -k tc05`) |
 | CI | `.github/workflows/ci.yml` runs the same command on a clean GitHub runner with a PostgreSQL 16 service, on every push |

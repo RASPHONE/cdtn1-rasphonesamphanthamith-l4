@@ -2,8 +2,8 @@
 
 - **Flow:** L4 — Technician Assignment and Appointment Scheduling
 - **Track:** SE
-- **Version:** v0.7
-- **BT2 target tag:** v0.2
+- **Version:** v0.8
+- **Tags:** BT2 `v0.2` · BT3 `v1.0`
 - **Language:** English
 - **Source case study:** Smart CRM – Mekong Mobile
 
@@ -32,7 +32,7 @@ The following capabilities are explicitly excluded from v0.2:
 2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in v0.2.
 3. **Technician self-service UI.** The Technician actor is specified but deferred to v1.1.
 4. **Reporting and analytics.** Dashboards belong to flows L6/L10, not L4.
-5. **Production authentication.** User accounts, password storage and an identity provider are out of scope. A minimal demo login (US14/FR12) exists only so the server can identify the caller's center and role.
+5. **Production authentication.** Account management, password change or reset, and an identity provider are out of scope. A minimal demo login (US14/FR12) exists only so the server can identify the caller's center and role; its two demo accounts are stored in table `app_user` with hashed passwords (BT3 S3, TD-37).
 6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but v0.2 only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
 7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.2. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 
@@ -307,9 +307,9 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | BT3 |
 | FR10 | Maintain technician skill records | US12 | UC2 | SHOULD | technician_skill, technician, issue_category | — (API only, TD-06; proficiency shown on M2) | BT3 |
 | FR11 | Read and soft-delete appointments | US13 | UC4 | SHOULD | appointment | M3 | BT3 |
-| FR12 | Minimal demo authentication for center scoping | US14 | UC1-UC4 (precondition) | MUST | (infrastructure) | Login screen | BT3 |
+| FR12 | Minimal demo authentication for center scoping | US14 | UC1-UC4 (precondition) | MUST | app_user (demo accounts) | Login screen | BT3 |
 
-**Row read:** every FR (none is WON'T) has a User Story, Use Case and data table; every FR has a screen except FR10, which is API-only by design (TD-06). FR12's data is infrastructure (token), not a table.
+**Row read:** every FR (none is WON'T) has a User Story, Use Case and data table; every FR has a screen except FR10, which is API-only by design (TD-06). FR12's data is the demo-account table `app_user` (added in BT3, TD-37).
 
 **Column read (data table):** `ticket` (FR1, FR3, FR5, FR6, FR8, FR9), `technician` (FR2, FR8, FR10), `technician_skill` (FR2, FR4, FR10), `issue_category` (FR2, FR9, FR10), `appointment` (FR6, FR7, FR11), `ticket_status_log` (FR5). All six ERD tables appear at least once — no isolated table.
 
@@ -329,3 +329,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |
 | v0.6 | BT2 finalisation (Session 12) | §1.5 rewritten for the actual committed sample; design notes 8–10 (customer snapshot fixture, concurrent assignment guard, business clock); NFR4/QT-15 masking now implemented in the service layer; supporting read endpoints `GET /api/tickets/{ticket_id}` (US2/US4 summary) and `GET /api/issue-categories` (US8 filter) added to the API contract. Consistency pass: US1 AC3 and NFR3 wording (lists are scoped, direct access returns 403), QT-04 working-day clause restored, matrix FR10 screen and column reads, §1.3 item 5, note on message language. | TD-15 to TD-30 |
 | v0.7 | BT3 (Session 13–14) | §3.1 Source column given one meaning (origin of the requirement) and filled for FR6–FR9 from the case study; FR10–FR12 now cite course constraints CC-01/CC-02, added to §5. | TD-31 |
+| v0.8 | BT3 (Session 15–16) | §1.3 item 5: the demo accounts are stored in `app_user` with hashed passwords; matrix FR12 data table `app_user`. | TD-37 (BUG-014) |

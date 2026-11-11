@@ -1,6 +1,6 @@
 # Smart CRM – Mekong Mobile · Flow L4: Technician Assignment & Appointment Scheduling
 
-Repository `cdtn1-rasphonesamphanthamith-l4` · Track **SE** · Specialized Graduation Topic I (CĐTN1) · BT2 tag **`v0.2`**
+Repository `cdtn1-rasphonesamphanthamith-l4` · Track **SE** · Specialized Graduation Topic I (CĐTN1) · BT2 tag `v0.2` · BT3 tag **`v1.0`**
 
 ## 1. What it does
 
@@ -35,7 +35,7 @@ Run from the repository root, one command per step. Windows PowerShell: use `cop
 
 | # | Step | Command |
 |---|---|---|
-| 1 | Get the code | `git clone --branch v0.2 https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4.git` |
+| 1 | Get the code | `git clone --branch v1.0 https://github.com/RASPHONE/cdtn1-rasphonesamphanthamith-l4.git` |
 | 2 | Enter the folder | `cd cdtn1-rasphonesamphanthamith-l4` |
 | 3 | Create `.env` | `cp .env.example .env` — then set `DB_USER` / `DB_PASSWORD` to your local PostgreSQL account |
 | 4 | Create the empty database | `psql -h localhost -U postgres -c "CREATE DATABASE mekong_l4"` — use the `DB_USER` and `DB_NAME` from your `.env` (the account needs the right to create databases; `postgres` has it) |
@@ -68,6 +68,8 @@ Frontend, in a **second terminal** (the API must be running):
 | `manager2` | `manager123` | 2 |
 
 Demo-only accounts for QT-14 scoping (TD-07); they are not production authentication.
+`scripts/seed.py` stores them in table `app_user` with PBKDF2 password hashes; the password is
+`DEMO_PASSWORD` from `.env` (default `manager123`) at the time the accounts are created (TD-37).
 The session token is kept in the browser's `localStorage` — readable by an injected
 script if the page had an XSS bug; accepted for the prototype (an HttpOnly cookie is the production choice).
 
@@ -80,8 +82,10 @@ docker compose up -d --build
 
 `docker compose ps` should show `db`, `api` and `web` as **healthy**. The API container
 builds the schema and loads the sample data automatically.
-UI: http://localhost:5173 · API: http://localhost:8000/health · PostgreSQL on host port 5433.
+UI: http://localhost:5173 · API: http://localhost:8000/health · PostgreSQL on 127.0.0.1:5433.
+Whole test suite inside the running system: `docker compose exec api pytest -q` → `110 passed`.
 Start over from an empty database: `docker compose down -v` then the second command again.
+Requirements, variables, sample data, checks and troubleshooting: **`docs/deployment-guide.md`**.
 
 ## 5. Tests
 
@@ -89,24 +93,27 @@ Start over from an empty database: `docker compose down -v` then the second comm
 pytest -q
 ```
 
-Expected: `98 passed`. 90 of them use in-memory fakes (`tests/fakes.py`) and need **no database and
-no `.env`**. The 8 BT3 database cases (`tests/bt3/`) need a reachable PostgreSQL 16 with the DB_*
-values from `.env`; they create and drop their own `<DB_NAME>_test` databases and never touch the
-application data. Without PostgreSQL they are reported as skipped (`90 passed, 8 skipped`).
-With the Docker database (section 4) run `DB_PORT=5433 pytest -q`.
+Expected: `110 passed`. 98 of them use in-memory fakes (`tests/fakes.py`) and need **no database and
+no `.env`**. The 12 database tests in `tests/bt3/` (8 Test Report cases, password storage, injection)
+need a reachable PostgreSQL 16 with the DB_* values from `.env`; they create and drop their own
+`<DB_NAME>_test` databases and never touch the application data. Without PostgreSQL they are
+reported as skipped (`98 passed, 12 skipped`). With the Docker database (section 4) run
+`DB_PORT=5433 pytest -q`, or run everything in the container: `docker compose exec api pytest -q`.
 
 - One Test Report case with its actual-result line: `pytest -s -v tests/bt3 -k tc05`
   (plan: `docs/test-plan.md`, results: `docs/test-report.md`).
 - The three BT2 test types in one file: `pytest -v tests/test_bt2_three_types.py`.
 - Frontend checks: `npm run lint` and `npm run build` in `frontend/`.
 - CI (`.github/workflows/ci.yml`) runs all of the above on every push, with a PostgreSQL service.
+- Security checklist, re-run against the Docker system: `bash scripts/security-checks.sh`
+  (results: `docs/checklist-bao-mat.md`).
 
 ## 6. Check that it works
 
 | Check | Command / action | Expected |
 |---|---|---|
 | API and database up | `curl http://localhost:8000/health` | `{"status":"ok","database":"up"}` |
-| Re-run is safe (no duplicates) | `python scripts/migrate.py` then `python scripts/seed.py` again | `0 applied, 2 already up to date` · every table `+0` |
+| Re-run is safe (no duplicates) | `python scripts/migrate.py` then `python scripts/seed.py` again | `0 applied, 3 already up to date` · every table `+0` |
 | Main flow | Log in as `manager2` → M1 → **Phân công** → choose a technician → **Xác nhận phân công** → **Đặt lịch hẹn → M3** → pick a future date/time → **Lưu & xác nhận** | Ticket leaves M1; appointment appears in M3 as "Đã xác nhận" |
 | Double booking blocked | In M3, enter an overlapping time for the same technician | Yellow "Trùng lịch" banner, save disabled; the API returns 409 with the conflicting appointment |
 | Filter with no result | M1: Nhóm sự cố "Nước vào" + Ưu tiên "Thấp" → **Áp dụng bộ lọc** | "Không có phiếu nào khớp bộ lọc hiện tại." + **Xoá bộ lọc** |
@@ -114,7 +121,7 @@ With the Docker database (section 4) run `DB_PORT=5433 pytest -q`.
 | Backend stopped | Stop uvicorn, reload the UI | Error panel "Không kết nối được tới máy chủ…" with **Thử lại** |
 | Database stopped | Stop PostgreSQL, reload a screen | `503 database_unavailable`, UI shows "Cơ sở dữ liệu tạm thời không khả dụng…" |
 
-API reference and error codes: `docs/api-contract.md`.
+API reference with real examples: `docs/api-docs/README.md` (also `/docs` on the running API); design contract: `docs/api-contract.md`.
 
 ## 7. Sample data (reproducible)
 
@@ -138,14 +145,16 @@ src/                     backend, three layers
   services/                layer 2: business rules (QT-07, QT-08, QT-14, QT-15, FR7) — no HTTP, no SQL
   repositories/            layer 3: SQL (psycopg 3) + transaction.py (unit of work)
   main.py · errors.py · security.py · config.py · db.py
-db/migrations/           001_init_schema.sql, 002_add_appointment_soft_delete.sql
+db/migrations/           001_init_schema.sql, 002_add_appointment_soft_delete.sql, 003_add_app_user.sql
 scripts/                 migrate.py · seed.py · build_sample.py · docker-entrypoint.sh
+                         build_api_docs.py (docs/api-docs) · security-checks.sh + security_probe.py
 data/sample/             committed sample CSVs
 tools/                   course dataset generators (gen_dataset.py, gen_sample.py)
-tests/                   pytest: fakes.py + service and API tests · bt3/ = Test Report cases TC-01 … TC-12
+tests/                   pytest: fakes.py + service and API tests · bt3/ = Test Report cases TC-01 … TC-12 + database security tests
 frontend/src/            api/ (only fetch calls) · pages/ (M1, M2, M3, Login) · components/ · hooks/ · labels.js
 docs/                    srs.md · api-contract.md · architecture-thuc-te.md (as built) · thay-doi-thiet-ke.md
                          ai-disclosure.md · bug-log.md · test-plan.md · test-report.md · screenshots/
+                         api-docs/ (API reference + openapi.json) · deployment-guide.md · checklist-bao-mat.md
                          BT1 diagrams (.drawio) and exports/
 Dockerfile · frontend/Dockerfile · docker-compose.yml · .github/workflows/ci.yml
 ```
@@ -160,8 +169,8 @@ on purpose (BT1 feedback). The UI text is Vietnamese.
 
 - [x] BT1 — analysis & design (PDF submitted; design files in `docs/`)
 - [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
-- [ ] BT3 — test plan/report and packaging (tag `v1.0`) — in progress: Test Plan, Test Report
-  cases TC-01 … TC-12, BUG-011 … BUG-013 fixed, CI (Session 14); packaging and guides next (Session 15)
+- [x] BT3 — Test Plan, Test Report (TC-01 … TC-12), Bug Log (BUG-011 … BUG-016), Deployment Guide,
+  security checklist, API reference, Docker clean-machine package (tag `v1.0`)
 
-Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-35) ·
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-42) ·
 bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.

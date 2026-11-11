@@ -1,6 +1,7 @@
-# `docs/architecture-thuc-te.md` — Architecture as built (L4, BT2, tag v0.2)
+# `docs/architecture-thuc-te.md` — Architecture as built (L4, tag v1.0)
 
-This is the architecture that is **actually implemented** at tag `v0.2`.
+This is the architecture that is **actually implemented**: written for BT2 (tag `v0.2`),
+updated for BT3 (tag `v1.0`, §5).
 The BT1 design (planned) is `docs/architecture_l4_en.md`; every difference is recorded
 in `docs/thay-doi-thiet-ke.md` (TD-16 summarises the structural ones).
 
@@ -17,7 +18,7 @@ Diagram source: `docs/architecture-thuc-te.drawio` (open in draw.io; PNG export 
 | 1 · HTTP | `src/routes/*.py`, `src/schemas/*.py`, `src/security.py`, `src/main.py` | Parse/validate the request format (Pydantic → 400 with field names), read `center_id`/`role` from the JWT, wire services to repositories, translate `AppError.code` → HTTP status (`src/errors.py: HTTP_BY_CODE`), 503 on database outage | Contain business rules or SQL |
 | 2 · Business rules | `src/services/*.py` | QT-07, QT-08, QT-14 center checks, QT-15 masking, FR7 overlap, CON-01, appointment lifecycle limits; raise `AppError(code, message)` | Import anything from FastAPI/HTTP or the database driver; know status codes |
 | 3 · Data access | `src/repositories/*.py`, `src/db.py` | Parameterised SQL with psycopg 3; `transaction.py` groups writes in one transaction | Decide anything (no business `if`) |
-| Data store | PostgreSQL 16 · `db/migrations/001_init_schema.sql`, `002_add_appointment_soft_delete.sql` · seed `data/sample/` | PK/FK/CHECK (CON-01…06), partial indexes for NFR1/NFR2/FR7 | — |
+| Data store | PostgreSQL 16 · `db/migrations/001_init_schema.sql`, `002_add_appointment_soft_delete.sql`, `003_add_app_user.sql` · seed `data/sample/` | PK/FK/CHECK (CON-01…06), partial indexes for NFR1/NFR2/FR7 | — |
 
 Dependencies point one way only: `routes → services → repositories → db`.
 Services receive their repositories (and the transaction factory) through the
@@ -57,3 +58,17 @@ grep -rn  "fetch(" frontend/src/pages frontend/src/components                 # 
 | Docker (`docker compose up -d --build`) | `db` (postgres:16.4-alpine, healthcheck) → `api` (Dockerfile, runs migrate → seed → uvicorn, healthcheck `/health`) → `web` (frontend/Dockerfile, nginx on :8080 published as :5173) |
 
 Configuration comes only from environment variables (`.env.example`, `frontend/.env.example`).
+
+## 5. BT3 additions (tag v1.0)
+
+| Where | What changed | Why |
+|---|---|---|
+| Layer 3 + data store | Table `app_user` (migration 003; `CHECK` accepts only `pbkdf2_sha256$…`), `src/repositories/user_repository.py` | Demo accounts with hashed passwords instead of a constant in code (BUG-014, TD-37) |
+| Layer 2 | `src/services/password_hashing.py` (PBKDF2-SHA256, 600,000 iterations); `AuthService` receives the user repository like every other service | S3; still no SQL or HTTP in services (quick checks above still return nothing) |
+| Layer 1 | `src/security.py` requires `exp`, `sub`, `user_id`, `role`, `center_id` in tokens; `src/main.py` answers framework 404/405 and unexpected 500s with the error envelope and `X-Request-ID`; the served OpenAPI documents 400 for invalid input | TD-39, TD-40, BUG-015, BUG-016 |
+| Packaging | The api image contains `tests/` (`docker compose exec api pytest -q`); PostgreSQL is published on 127.0.0.1 only | TD-41 |
+
+The diagram above shows these changes (`PostgresUserRepository`, `app_user`, migration 003,
+404/405 handling). `app_user` supports the demo login only and is not part of the L4 business
+model, so the BT1 ERD (`erd_l4_en.drawio`) is unchanged; its DDL is in
+`db/migrations/003_add_app_user.sql` and in `docs/ddl_l4.sql`.

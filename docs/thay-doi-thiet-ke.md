@@ -179,9 +179,8 @@ three-line format: **Change** (what) · **Reason** (why) · **Impact** (which co
 
 ## BT3 — testing (Session 13–14)
 
-*BT2 feedback: not received yet (05/11/2026). When it arrives, each point gets an entry in
-the Session 8 template (Feedback · Decision · Reason · Impact), and any failure the lecturer
-hit while running the repository is also logged as a bug in `docs/bug-log.md`.*
+*BT2 feedback had not been received when this section was written (05/11/2026); it is
+recorded in TD-36 below.*
 
 ### TD-31 SRS §3.1 "Source" column given one meaning
 - **Change:** The Source column now always names where a requirement comes from. FR6–FR9 (previously "—") cite the case study: FR6 and FR7 the L4 flow scope ("đặt lịch hẹn giao – nhận máy", "kiểm tra trùng lịch"), FR8 problem V3, the L4 scope and the Center Manager interview #1–#2, FR9 is marked *derived* from QT-08, QT-04 and interview #3. FR10–FR12 (added in BT2) cited "BT2 S1" / "BT2 Component 3"; those are course constraints, not business sources, so they are listed in SRS §5 as CC-01 / CC-02 and the FRs cite those IDs. FR6 ("create or update an appointment") is kept as one requirement: both operations act on the same record with the same validation and conflict rule (US5, US6 AC3), unlike two separate capabilities in one sentence.
@@ -207,3 +206,41 @@ hit while running the repository is also logged as a bug in `docs/bug-log.md`.*
 - **Change:** Added `tests/bt3/` (Test Report cases TC-01 … TC-12). The database cases build `<DB_NAME>_test_tpl` once with the real migrate/seed scripts and recreate `<DB_NAME>_test` from it before every case; they are skipped (or fail with `REQUIRE_DB=1`) when PostgreSQL is unreachable. `.github/workflows/ci.yml` runs `pytest -q` with a PostgreSQL 16 service and the frontend lint/build on every push.
 - **Reason:** BT3 TP2 asks for cases run against the real system with side effects measured, and each case must start from known data; BT2 promised tests without a database, which still holds for the 90 tests that need no database.
 - **Impact:** `tests/bt3/`, `.github/workflows/ci.yml`, README §5, `docs/test-plan.md`, `docs/test-report.md`. The application database is never touched by the tests.
+
+## BT3 — packaging, security and documentation (Session 15–16)
+
+### TD-36 BT2 feedback (recorded 12/11/2026)
+- **Feedback:** *"Điểm mạnh: FastAPI + PostgreSQL + React: phân công KTV và lịch hẹn với nhiều quy tắc có kiểm thử, 81 kiểm thử PASS, ba màn hình M1–M3 đủ ba trạng thái, khoá phiên bản đầy đủ, .env.example cho cả backend và frontend, Docker hai lệnh, 30 mục thay đổi thiết kế và 10 bug log. Cần khắc phục: Không có lỗi đáng kể. Giữ phong độ cho BT3. Mục kiểm chứng (bảng 4.2): đạt đủ các mục chung và mục theo track."* — strengths: rule-heavy assignment and scheduling with tests, 81 tests passing, M1–M3 with the three states, full version pinning, `.env.example` for backend and frontend, two-command Docker, 30 design-change entries and 10 bugs logged; nothing significant to fix; every common and track item of table 4.2 met.
+- **Decision:** KEEP — no correction requested. The practices the feedback names are continued in BT3: every change is logged here (TD-31 … TD-42) and every bug in `docs/bug-log.md` (BUG-011 … BUG-016), versions stay pinned (TD-38), and the two-command Docker start is kept and is now also the way the full test suite runs (TD-41).
+- **Reason:** "Giữ phong độ" asks for the same standard on the new BT3 components; the lecturer hit no failure while running the repository, so no bug comes from the feedback itself.
+- **Impact:** none on code; this entry replaces the "not received yet" note of the BT3 section. The test count named in the feedback (81) is the BT2 state; BT3 brings it to 110 (README §5).
+
+### TD-37 Demo accounts stored in `app_user` with hashed passwords (BUG-014)
+- **Change:** New table `app_user` (migration `003_add_app_user.sql`, also in `docs/ddl_l4.sql`) with a `CHECK` that accepts only `pbkdf2_sha256$…` values; `seed.py` creates `manager1` / `manager2` from `DEMO_PASSWORD` (default `manager123`) hashed with PBKDF2-SHA256, 600,000 iterations; `AuthService` reads accounts through the new `PostgresUserRepository` instead of the `DEMO_USERS` constant.
+- **Reason:** BUG-014 / BT3 S3: passwords in the database must be hashes; the BT2 demo kept them in clear in the code (TD-07 had said "not production authentication").
+- **Impact:** `db/migrations/`, `docs/ddl_l4.sql`, `scripts/seed.py`, `src/repositories/user_repository.py`, `src/services/password_hashing.py`, `auth_service.py`, `routes/auth.py`, `.env.example`, `docker-compose.yml`, tests (`FakeUserRepository`, 6 new tests), `docs/architecture-thuc-te.md` §5 and diagram, SRS v0.8 (§1.3 item 5, matrix FR12). Login behaviour and the documented demo credentials are unchanged; the BT1 ERD is unchanged (authentication table outside the L4 business model).
+
+### TD-38 Dependencies upgraded after `pip-audit` and `npm audit`
+- **Change:** `fastapi` 0.115.5 → 0.162.0 with `starlette` pinned at 1.10.0, `PyJWT` 2.9.0 → 2.15.1, `pytest` 8.3.4 → 9.1.1; frontend: npm override pins `minimatch` 11.0.8 under ESLint 10.
+- **Reason:** security checklist item 7: `pip-audit` reported 25 advisories, `npm audit` 4 moderate (development only). After the change both report 0.
+- **Impact:** `requirements.txt`, `pytest.ini` (one deprecation warning from `starlette.testclient` filtered), `frontend/package.json` and lock file; Starlette 1.x lists routers differently, so endpoint enumeration uses `app.openapi()`. All tests pass on Python 3.11–3.14; lint and build unchanged.
+
+### TD-39 Every error response follows the contract envelope (BUG-015, BUG-016)
+- **Change:** Framework 404/405 answer `{"error": "not_found" | "method_not_allowed", "message"}`; unexpected errors are turned into the 500 envelope inside the request-log middleware, so they carry `X-Request-ID` and a request log line; the served OpenAPI (`/openapi.json`, `/docs`) documents 400 with the error envelope instead of FastAPI's default 422.
+- **Reason:** security checklist item 5 / BT3 S4 and API contract §1; S1 (the machine-readable docs must match the real responses).
+- **Impact:** `src/main.py`, API contract §1, 3 new tests.
+
+### TD-40 Tokens must carry every claim the API reads
+- **Change:** `jwt.decode` requires `exp`, `sub`, `user_id`, `role` and `center_id`; a token without an expiry or without the center is refused (401).
+- **Reason:** Session 15 JWT checklist ("always verify the expiry"); a token without `exp` would never expire and one without `center_id` would bypass QT-14 scoping by failing later with a 500.
+- **Impact:** `src/security.py`, `tests/test_config.py`, test tokens in `tests/test_api.py`.
+
+### TD-41 Docker package for the clean-machine test
+- **Change:** The api image contains `tests/`, `pytest.ini` and `.env.example`, so `docker compose exec api pytest -q` runs the whole suite where the system runs; `/app` belongs to the unprivileged `app` user; PostgreSQL is published on `127.0.0.1` only; `DEMO_PASSWORD` is passed to the api service; `seed.py` binds `APP_TIMEZONE` as a parameter.
+- **Reason:** BT3 C1/C3 (tests pass with one command from the Deployment Guide on a clean machine) and checklist items 1–2 (database not exposed on the network, no configurable value formatted into SQL).
+- **Impact:** `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `scripts/seed.py`, `docs/deployment-guide.md`, README §4–§5.
+
+### TD-42 BT3 documentation set
+- **Change:** `docs/api-docs/` (README with the 7 items for each of the 19 endpoints and real examples, plus `openapi.json`) generated by `scripts/build_api_docs.py`, which stops if the documented endpoints, statuses or examples differ from the code; `docs/deployment-guide.md` (English, 5 required sections + troubleshooting, HTTPS and monitoring); `docs/checklist-bao-mat.md` with `scripts/security-checks.sh`, which re-runs the 7 checks against the Docker system.
+- **Reason:** BT3 TP5, TP6 (S1) and C9 — the documents must describe the system as it is, so they are generated from or checked against the running code.
+- **Impact:** `docs/`, `scripts/`; `docs/api-contract.md` stays the design contract (BT1/BT2) and points to `docs/api-docs/` for the reference.

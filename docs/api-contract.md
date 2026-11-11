@@ -1,8 +1,12 @@
 # `docs/api-contract.md` — API Contract (L4, Track SE, BT2 target tag v0.2)
 
 Updated for BT2. Every business endpoint traces to a User Story in SRS §6.2.
-Companion artifacts: `docs/srs.md` (v0.6), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sql`,
+Companion artifacts: `docs/srs.md` (v0.8), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sql`,
 `docs/wireframes_l4_en.drawio` (M1–M3).
+
+**BT3 (tag `v1.0`):** this file stays the design contract. The reference for the system as
+built — the 7 items of every endpoint with real requests and responses, checked against the
+code when generated — is `docs/api-docs/README.md` (machine-readable: `docs/api-docs/openapi.json`).
 
 ## 1. Common conventions
 
