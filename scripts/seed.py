@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.config import get_settings  # noqa: E402
 from src.db import DatabaseUnavailableError, get_connection  # noqa: E402
-from src.services.password_hashing import hash_password  # noqa: E402
+from src.services.password_hashing import hash_password, verify_password  # noqa: E402
 
 SAMPLE = ROOT / "data" / "sample"
 SLA_HOURS = {"CAO": 24, "TRUNG_BINH": 72, "THAP": 120}   # QT-04 (calendar hours, as in the dataset)
@@ -136,7 +136,7 @@ def seed():
 
             insert_demo_appointments(cur, tickets, now)
             sync_sequences(cur)
-            insert_demo_accounts(cur, settings.demo_password)
+            reset = insert_demo_accounts(cur, settings.demo_password)
 
             counts_after = count_rows(cur)
 
@@ -144,6 +144,8 @@ def seed():
     for table in TABLES:
         added = counts_after[table] - counts_before[table]
         print(f"  {table:18} +{added:<5} {counts_after[table]:>6}")
+    if reset:
+        print(f"Demo password changed to the DEMO_PASSWORD value for: {', '.join(reset)}")
 
 
 def insert_demo_appointments(cur, tickets, now):
@@ -170,17 +172,28 @@ def insert_demo_appointments(cur, tickets, now):
 
 
 def insert_demo_accounts(cur, password):
-    """Hash computed only for accounts that do not exist yet, so a re-run changes nothing."""
-    cur.execute("SELECT username FROM app_user")
-    existing = {row["username"] for row in cur.fetchall()}
+    """Create the demo accounts with DEMO_PASSWORD, and keep them in line with it.
+
+    A re-run with the same DEMO_PASSWORD changes nothing (the stored hash still matches).
+    When DEMO_PASSWORD has changed since the accounts were created, their hash is replaced,
+    so changing the variable and restarting is how the demo password is changed (TD-45).
+    Returns the usernames whose password was changed.
+    """
+    cur.execute("SELECT username, password_hash FROM app_user")
+    existing = {row["username"]: row["password_hash"] for row in cur.fetchall()}
+    changed = []
     for user_id, username, role, center_id in DEMO_ACCOUNTS:
-        if username in existing:
-            continue
-        cur.execute(
-            """INSERT INTO app_user (user_id, username, password_hash, role, center_id)
-               VALUES (%s, %s, %s, %s, %s) ON CONFLICT (user_id) DO NOTHING""",
-            (user_id, username, hash_password(password), role, center_id),
-        )
+        if username not in existing:
+            cur.execute(
+                """INSERT INTO app_user (user_id, username, password_hash, role, center_id)
+                   VALUES (%s, %s, %s, %s, %s) ON CONFLICT (user_id) DO NOTHING""",
+                (user_id, username, hash_password(password), role, center_id),
+            )
+        elif not verify_password(password, existing[username]):
+            cur.execute("UPDATE app_user SET password_hash = %s WHERE username = %s",
+                        (hash_password(password), username))
+            changed.append(username)
+    return changed
 
 
 def sync_sequences(cur):
