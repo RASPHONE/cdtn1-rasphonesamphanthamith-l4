@@ -82,7 +82,7 @@ Check the counts:
 |---|---|---|
 | 1 | `docker compose ps` | `db`, `api` and `web` all show `Up … (healthy)` (if `web` still shows `starting`, wait 20 seconds) |
 | 2 | `curl -s http://localhost:8000/health` (Windows PowerShell: `curl.exe`) | `{"status":"ok","database":"up"}` |
-| 3 | `docker compose exec api pytest -q` | `110 passed` — the full suite, including the 12 Test Report cases on fresh copies of the sample database |
+| 3 | `docker compose exec api pytest -q` | `113 passed` — the full suite, including the 12 Test Report cases on fresh copies of the sample database |
 | 4 | `docker compose exec api pytest -s -v tests/bt3 -k tc10` | one Test Report case with its `observed:` line and `PASSED` (any `tc01` … `tc12`) |
 | 5 | `docker compose exec api python scripts/migrate.py` | `Migration completed: 0 applied, 3 already up to date.` |
 | 6 | `docker compose exec api python scripts/seed.py` | every table `+0`; totals as in section 4 (no duplicates) |

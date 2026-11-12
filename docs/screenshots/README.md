@@ -11,7 +11,7 @@ the `observed:` line and PASSED/FAILED. The three cases that failed before the f
 | File | Command | Shows |
 |---|---|---|
 | `clean-1.png` | `docker compose ps; curl -s http://localhost:8000/health` | db, api, web `Up … (healthy)`; `{"status":"ok","database":"up"}` |
-| `clean-2.png` | `docker compose exec api pytest -q` | `110 passed` inside the running system |
+| `clean-2.png` | `docker compose exec api pytest -q` | `113 passed` inside the running system |
 | `clean-3.png` | `docker compose exec api python scripts/migrate.py` and `… seed.py` | second run: `0 applied, 3 already up to date`, every table `+0` |
 | `run3.png` | `docker compose exec api pytest -v -p no:cacheprovider tests/bt3/test_bt3_cases.py` | Test Report run 3: TC-01 … TC-12 PASSED |
 | `sec-1.png` … `sec-7.png` | `bash scripts/security-checks.sh <n>` | the 7 items of `docs/checklist-bao-mat.md` |

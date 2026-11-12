@@ -5,7 +5,7 @@ Seven items of BT3 TP5, each with its status (**ĐÃ LÀM** done · **CHƯA LÀM
 **running** the command, not from memory: `bash scripts/security-checks.sh` runs all seven
 against the Docker system (`bash scripts/security-checks.sh 4` runs one) and prints each
 command with its result; the terminal of each item is `docs/screenshots/sec-<n>.png`, taken on
-12/11/2026 during the clean-machine test of commit `8f4cfdb` (the `v1.0` code) in Docker.
+12/11/2026 during the clean-machine test of commit `8f4cfdb` (the `v1.0` application code) in Docker.
 Filling the checklist this way found three bugs, now fixed: BUG-014 (Critical),
 BUG-015 and BUG-016 (Minor) in `docs/bug-log.md`.
 

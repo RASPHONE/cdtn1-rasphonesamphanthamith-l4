@@ -294,26 +294,34 @@ UC5 and UC6 are specified use cases without an associated FR at v0.2. This is pe
 
 Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket detail & technician assignment · **M3** = Appointment create/update (source: `docs/wireframes_l4_en.drawio`).
 
-| FR | Requirement | User Story | Use Case | MoSCoW | Data table | Screen | Test case |
+| FR | Requirement | User Story | Use Case | MoSCoW | Data table | Screen | Test case (BT3) |
 |---|---|---|---|---|---|---|---|
-| FR1 | Display unassigned warranty tickets sorted by due date | US1 | UC1 | MUST | ticket | M1 | BT3 |
-| FR2 | Suggest technicians (same center, proficiency ≥ 3) | US2 | UC2 | MUST | technician, technician_skill, issue_category | M2 | BT3 |
-| FR3 | Assign to at most one technician | US4 | UC3 | MUST | ticket | M2 | BT3 |
-| FR4 | Reject ineligible technician | US4 | UC3 | MUST | technician_skill | M2 | BT3 |
-| FR5 | Require reason on reassignment | US4 | UC3 | MUST | ticket, ticket_status_log | M2 | BT3 |
-| FR6 | Create/update handover/receipt appointment | US5 | UC4 | MUST | appointment, ticket | M3 | BT3 |
-| FR7 | Warn and block appointment conflict | US6 | UC4 | MUST | appointment | M3 | BT3 |
-| FR8 | Show technician workload count | US3 | UC2 | SHOULD | ticket, technician | M2 | BT3 |
-| FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | BT3 |
-| FR10 | Maintain technician skill records | US12 | UC2 | SHOULD | technician_skill, technician, issue_category | — (API only, TD-06; proficiency shown on M2) | BT3 |
-| FR11 | Read and soft-delete appointments | US13 | UC4 | SHOULD | appointment | M3 | BT3 |
-| FR12 | Minimal demo authentication for center scoping | US14 | UC1-UC4 (precondition) | MUST | app_user (demo accounts) | Login screen | BT3 |
+| FR1 | Display unassigned warranty tickets sorted by due date | US1 | UC1 | MUST | ticket | M1 | TC-04 · `test_fr1_unassigned_list_is_sorted_by_due_date` |
+| FR2 | Suggest technicians (same center, proficiency ≥ 3) | US2 | UC2 | MUST | technician, technician_skill, issue_category | M2 | TC-01 · `test_qualified_technicians_cross_center_fails`, `test_boundary_proficiency_exactly_3_is_qualified` |
+| FR3 | Assign to at most one technician | US4 | UC3 | MUST | ticket | M2 | TC-02 · `test_assign_already_assigned_ticket_fails`, `test_assignment_lost_race_is_rejected_without_log` |
+| FR4 | Reject ineligible technician | US4 | UC3 | MUST | technician_skill | M2 | TC-06, TC-07 · `test_assign_unqualified_technician_fails`, `test_assign_inactive_technician_fails` |
+| FR5 | Require reason on reassignment | US4 | UC3 | MUST | ticket, ticket_status_log | M2 | TC-09 · `test_reassign_without_reason_fails`, `test_boundary_reason_with_4_characters_is_rejected` |
+| FR6 | Create/update handover/receipt appointment | US5 | UC4 | MUST | appointment, ticket | M3 | TC-03, TC-08, TC-10 · `test_appointment_crud_flow`, `test_create_appointment_in_past_fails` |
+| FR7 | Warn and block appointment conflict | US6 | UC4 | MUST | appointment | M3 | TC-03 · `test_create_conflicting_appointment_fails`, `test_boundary_one_minute_overlap_conflicts_and_lists_the_conflict`, `test_conflict_precheck_endpoint` |
+| FR8 | Show technician workload count | US3 | UC2 | SHOULD | ticket, technician | M2 | — · `test_fr8_workload_is_the_live_count_of_open_assigned_tickets` |
+| FR9 | Filter unassigned tickets | US8 | UC1 | SHOULD | ticket, issue_category | M1 | — · `test_fr9_filter_returns_only_matching_tickets`, `test_invalid_filter_value_returns_400` |
+| FR10 | Maintain technician skill records | US12 | UC2 | SHOULD | technician_skill, technician, issue_category | — (API only, TD-06; proficiency shown on M2) | — · `test_technician_skill_crud_flow`, `tests/test_technician_skill_service.py` (13 tests) |
+| FR11 | Read and soft-delete appointments | US13 | UC4 | SHOULD | appointment | M3 | — · `test_appointment_crud_flow`, `test_soft_delete_completed_appointment_fails`, `test_soft_deleted_appointment_does_not_cause_conflict` |
+| FR12 | Minimal demo authentication for center scoping | US14 | UC1-UC4 (precondition) | MUST | app_user (demo accounts) | Login screen | TC-11 · `test_login_invalid_credentials`, `test_token_without_expiry_or_center_is_refused`, `test_app_user_stores_only_pbkdf2_hashes` |
 
 **Row read:** every FR (none is WON'T) has a User Story, Use Case and data table; every FR has a screen except FR10, which is API-only by design (TD-06). FR12's data is the demo-account table `app_user` (added in BT3, TD-37).
 
-**Column read (data table):** `ticket` (FR1, FR3, FR5, FR6, FR8, FR9), `technician` (FR2, FR8, FR10), `technician_skill` (FR2, FR4, FR10), `issue_category` (FR2, FR9, FR10), `appointment` (FR6, FR7, FR11), `ticket_status_log` (FR5). All six ERD tables appear at least once — no isolated table.
+**Column read (data table):** `ticket` (FR1, FR3, FR5, FR6, FR8, FR9), `technician` (FR2, FR8, FR10), `technician_skill` (FR2, FR4, FR10), `issue_category` (FR2, FR9, FR10), `appointment` (FR6, FR7, FR11), `ticket_status_log` (FR5). All six ERD tables appear at least once — no isolated table. `app_user` (FR12) is the demo-account table added in BT3 (TD-37).
 
 **Column read (screen):** M1 (FR1, FR9), M2 (FR2–FR5, FR8), M3 (FR6, FR7, FR11), Login (FR12). All three wireframes appear at least once — no orphan screen.
+
+**Column read (test case):** `TC-xx` = a Test Report case (`docs/test-report.md`, each run with
+its actual result and a screenshot), taken from the case's own source column; the names after `·`
+are automated tests of the same suite (`pytest -q`, files in `tests/`). Every FR has at least one
+automated test. FR8–FR11 (SHOULD) have no Test Report case (`—`): the 12 report cases go to the
+MUST rules first (Test Plan §1). FR1's order, FR8 and FR9 are computed in SQL, so their tests run
+on the database (`tests/bt3/test_fr_coverage_db.py`). TC-05 (QT-15 / NFR4) and TC-12
+(re-running migration and seed) trace to a rule, an NFR and a course criterion, not to an FR.
 
 ---
 
@@ -329,4 +337,4 @@ Screen identifiers: **M1** = Unassigned warranty ticket list · **M2** = Ticket 
 | v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |
 | v0.6 | BT2 finalisation (Session 12) | §1.5 rewritten for the actual committed sample; design notes 8–10 (customer snapshot fixture, concurrent assignment guard, business clock); NFR4/QT-15 masking now implemented in the service layer; supporting read endpoints `GET /api/tickets/{ticket_id}` (US2/US4 summary) and `GET /api/issue-categories` (US8 filter) added to the API contract. Consistency pass: US1 AC3 and NFR3 wording (lists are scoped, direct access returns 403), QT-04 working-day clause restored, matrix FR10 screen and column reads, §1.3 item 5, note on message language. | TD-15 to TD-30 |
 | v0.7 | BT3 (Session 13–14) | §3.1 Source column given one meaning (origin of the requirement) and filled for FR6–FR9 from the case study; FR10–FR12 now cite course constraints CC-01/CC-02, added to §5. | TD-31 |
-| v0.8 | BT3 (Session 15–16) | §1.3 item 5: the demo accounts are stored in `app_user` with hashed passwords; matrix FR12 data table `app_user`. | TD-37 (BUG-014) |
+| v0.8 | BT3 (Session 15–16) | §1.3 item 5: the demo accounts are stored in `app_user` with hashed passwords; matrix FR12 data table `app_user`; §6.2 "Test case (BT3)" column filled with the Test Report cases and automated tests of each FR (it read "BT3" since BT1). | TD-37 (BUG-014), TD-43 |
