@@ -14,6 +14,11 @@ from `docker compose up -d db`, so every command was prefixed with `DB_PORT=5433
 cases were written — TC-08, TC-09, TC-11 — were run again to record the failure.
 **Run 2** = commit `8990458` (after the three fixes): all 12 cases. A case that failed in run 1
 shows both results and both screenshots (`TC-xx-run1.png`, `TC-xx.png`).
+**Run 3** (12/11/2026, by the student) = commit `8f4cfdb`, the `v1.0` code, on the clean-machine
+test: fresh clone in an empty folder, `docker compose up -d --build`, then
+`docker compose exec api pytest -v tests/bt3/test_bt3_cases.py` inside the api container
+(Python 3.12.7, pytest 9.1.1): all 12 PASS, the same actual results as run 2 except TC-12, whose
+migrate line now reads "0 applied, 3 already up to date" (BT3 migration 003) · [run3](screenshots/run3.png).
 
 Priority: **High** = a MUST rule or a security property · **Medium** = SHOULD behaviour or
 message quality · **Low** = convenience.
@@ -35,12 +40,12 @@ message quality · **Low** = convenience.
 
 ## Summary
 
-| | Run 1 (`cf58fa7`, before the fixes) | Run 2 (`8990458`, after the fixes) |
-|---|---|---|
-| Cases run | 3 (TC-08, TC-09, TC-11) | 12 (TC-01 … TC-12) |
-| PASS / FAIL | 0 / 3 | 12 / 0 |
-| Bugs opened | BUG-011 (Critical), BUG-012 (Major), BUG-013 (Minor) | none |
-| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) |
+| | Run 1 (`cf58fa7`, before the fixes) | Run 2 (`8990458`, after the fixes) | Run 3 (`8f4cfdb` = `v1.0` code, clean machine, Docker) |
+|---|---|---|---|
+| Cases run | 3 (TC-08, TC-09, TC-11) | 12 (TC-01 … TC-12) | 12 (TC-01 … TC-12) · [run3](screenshots/run3.png) |
+| PASS / FAIL | 0 / 3 | 12 / 0 | 12 / 0 |
+| Bugs opened | BUG-011 (Critical), BUG-012 (Major), BUG-013 (Minor) | none | none (BUG-014 … 016 came from the security checklist) |
+| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) | `docker compose exec api pytest -q` → **110 passed** · [clean-2](screenshots/clean-2.png) |
 
 **Success criteria (Test Plan §3):** 12/12 cases run with a concrete actual result and a
 screenshot · every implemented rule has a happy-path case and QT-08 is tested on both sides ·

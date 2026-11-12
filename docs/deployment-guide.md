@@ -96,6 +96,7 @@ API reference with real examples: `docs/api-docs/README.md` (also `http://localh
 
 | Symptom | Fix |
 |---|---|
+| `permission denied … docker.sock` (Linux) | Your user is not in the `docker` group: put `sudo` before each `docker` command, or run `sudo usermod -aG docker $USER` and log in again |
 | `Set DB_PASSWORD in .env` | Step 3 was skipped: run `cp .env.example .env` in the project folder |
 | `port is already allocated` / `address already in use` | Another program uses 8000, 5173 or 5433: set `API_PORT`, `WEB_PORT` or `DOCKER_DB_PORT` in `.env`, then `docker compose up -d --build` |
 | `api` stays `starting` or `unhealthy` | `docker compose logs api --tail 50`. `password authentication failed` means an old database volume made with another password: `docker compose down -v`, then step 4 |

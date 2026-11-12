@@ -5,3 +5,15 @@ Each shows the command (`DB_PORT=5433 pytest -s -v tests/bt3 -k tc01`), the API 
 the `observed:` line and PASSED/FAILED. The three cases that failed before the fixes also have
 `TC-08-run1.png`, `TC-09-run1.png` and `TC-11-run1.png` (commit `cf58fa7`).
 `full-suite.png` is the whole suite with the README command: `pytest -q` → 98 passed.
+
+**BT3 packaging (12/11/2026, clean-machine test of `main` = `8f4cfdb` in an empty folder, Docker):**
+
+| File | Command | Shows |
+|---|---|---|
+| `clean-1.png` | `docker compose ps; curl -s http://localhost:8000/health` | db, api, web `Up … (healthy)`; `{"status":"ok","database":"up"}` |
+| `clean-2.png` | `docker compose exec api pytest -q` | `110 passed` inside the running system |
+| `clean-3.png` | `docker compose exec api python scripts/migrate.py` and `… seed.py` | second run: `0 applied, 3 already up to date`, every table `+0` |
+| `run3.png` | `docker compose exec api pytest -v -p no:cacheprovider tests/bt3/test_bt3_cases.py` | Test Report run 3: TC-01 … TC-12 PASSED |
+| `sec-1.png` … `sec-7.png` | `bash scripts/security-checks.sh <n>` | the 7 items of `docs/checklist-bao-mat.md` |
+
+The student's Docker needs `sudo`, so the commands appear with a `sudo` prefix.
