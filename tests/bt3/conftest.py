@@ -67,6 +67,10 @@ def _run_script(script: str, db_name: str) -> str:
 @pytest.fixture(scope="session")
 def pg_template():
     """Build <DB_NAME>_test_tpl once: migrate + seed exactly as README step 8-9."""
+    if os.environ.get("DATABASE_URL"):
+        # A platform database (Render) is not a test server: the cases would drop and
+        # create databases next to it, so they refuse to run there.
+        pytest.skip("DATABASE_URL is set (deployed database): the database cases run only on a test server")
     settings = _server_settings()
     base = settings.db_name
     template, working = f"{base}_test_tpl", f"{base}_test"

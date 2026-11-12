@@ -35,3 +35,17 @@ def test_token_without_expiry_or_center_is_refused(client):
         token = pyjwt.encode(claims, secret, algorithm="HS256")
         response = client.get("/api/tickets/unassigned", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 401, drop
+
+
+def test_database_url_replaces_the_db_fields():
+    # Render gives the database as one URL (render.yaml, Deployment Guide §9).
+    settings = Settings(_env_file=None, db_host="ignored", db_password="ignored",
+                        database_url="postgresql://l4_user:p%40ss%20word@dpg-abc-a/mekong_l4")
+    assert (settings.db_host, settings.db_port, settings.db_user, settings.db_password, settings.db_name) == (
+        "dpg-abc-a", 5432, "l4_user", "p@ss word", "mekong_l4")
+    assert "password='p@ss word'" in settings.psycopg_conninfo
+
+
+def test_database_url_must_be_postgresql():
+    with pytest.raises(ValidationError, match="DATABASE_URL"):
+        Settings(_env_file=None, database_url="mysql://user@host/db")

@@ -30,8 +30,9 @@ COPY pytest.ini .env.example ./
 USER app
 EXPOSE 8000
 
+# Same port rule as scripts/docker-entrypoint.sh: $PORT when a platform sets it, else 8000.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=6 \
-  CMD python -c "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)"
+  CMD python -c "import os, sys, urllib.request; port = os.environ.get('PORT', '8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=2).status == 200 else 1)"
 
 # migrate -> seed -> start API (both scripts are safe to re-run).
 CMD ["sh", "scripts/docker-entrypoint.sh"]

@@ -1,7 +1,9 @@
 import secrets
 from functools import lru_cache
+from urllib.parse import unquote, urlsplit
 
-from pydantic import Field, field_validator
+from psycopg.conninfo import make_conninfo
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Values that were published in this public repository (tag v0.2): a token signed with
@@ -34,6 +36,9 @@ class Settings(BaseSettings):
     db_user: str = "postgres"
     db_password: str = ""
     db_connect_timeout: int = 3
+    # Hosting platforms (Render, docs/deployment-guide.md §9) give the database as one URL,
+    # postgresql://user:password@host:port/name; when set it replaces the DB_* values above.
+    database_url: str = ""
 
     port: int = 8000
 
@@ -68,19 +73,28 @@ class Settings(BaseSettings):
             raise ValueError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_LENGTH} characters.")
         return value
 
+    @model_validator(mode="after")
+    def _database_url_replaces_db_fields(self):
+        if self.database_url:
+            url = urlsplit(self.database_url)
+            if url.scheme not in ("postgres", "postgresql") or not url.hostname:
+                raise ValueError("DATABASE_URL must look like postgresql://user:password@host:port/name.")
+            self.db_host = url.hostname
+            self.db_port = url.port or 5432
+            self.db_name = unquote(url.path.lstrip("/")) or self.db_name
+            self.db_user = unquote(url.username or "") or self.db_user
+            self.db_password = unquote(url.password or "")
+        return self
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def psycopg_conninfo(self) -> str:
-        return (
-            f"host={self.db_host} "
-            f"port={self.db_port} "
-            f"dbname={self.db_name} "
-            f"user={self.db_user} "
-            f"password={self.db_password}"
-        )
+        # make_conninfo quotes each value, so a password with spaces or quotes still works.
+        return make_conninfo(host=self.db_host, port=self.db_port, dbname=self.db_name,
+                             user=self.db_user, password=self.db_password)
 
 
 @lru_cache

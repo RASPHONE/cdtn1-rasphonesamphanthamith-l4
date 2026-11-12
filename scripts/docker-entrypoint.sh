@@ -4,4 +4,5 @@
 set -e
 python scripts/migrate.py
 python scripts/seed.py
-exec uvicorn src.main:app --host 0.0.0.0 --port 8000
+# Port: PORT when the platform sets one (Render), else 8000 (docker compose).
+exec uvicorn src.main:app --host 0.0.0.0 --port "${PORT:-8000}"
