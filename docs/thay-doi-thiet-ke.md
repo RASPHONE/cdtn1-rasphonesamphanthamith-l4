@@ -259,3 +259,11 @@ recorded in TD-36 below.*
 - **Change:** `seed.py` checks the stored hash of each demo account against the current `DEMO_PASSWORD` and replaces it when it no longer matches (printing which accounts changed). With an unchanged value nothing is written, so a re-run still adds and changes nothing (C8). New test `test_changing_demo_password_and_reseeding_changes_the_login`.
 - **Reason:** found during the Render deployment: the password typed for `DEMO_PASSWORD` at Blueprint creation was not the intended one, and correcting the variable had no effect because the accounts already existed; the only way out would have been opening the private database to run SQL. Now the variable is the single place the demo password is set.
 - **Impact:** `scripts/seed.py`, `tests/bt3/test_password_storage_db.py`, `.env.example`, Deployment Guide §3 and §9; suite 115 → 116 tests. Each start verifies two PBKDF2 hashes (about 0.2 s, longer on a free 0.1-CPU instance).
+
+## After tag `v1.0` (maintenance, no change to the graded system)
+
+### TD-46 CI actions on Node 24, fixed runner image, keep-awake schedule off the hour
+- **Change:** `ci.yml` uses `actions/checkout@v6`, `actions/setup-python@v6` and `actions/setup-node@v6` (Node 24) and runs on `ubuntu-24.04` instead of `ubuntu-latest`; `keep-awake.yml` runs at minutes 7, 17, … 57 (`7-59/10`) instead of every 10 minutes from minute 0, also on `ubuntu-24.04`.
+- **Reason:** the CI log warned that the v4/v5 actions target the deprecated Node 20 and that `ubuntu-latest` is moving to Ubuntu 26 (a fixed image keeps CI reproducible, like the pinned versions elsewhere); the keep-awake schedule produced no automatic run in two hours, and GitHub delays or drops scheduled runs at the start of each hour.
+- **Impact:** `.github/workflows/` only; application, tests, Docker and the `v1.0` tag are unchanged.
+

@@ -9,7 +9,9 @@ name: keep-awake
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Minutes 7, 17, … 57: GitHub delays or drops scheduled runs at busy times, above all
+    # at the start of each hour, so the schedule avoids minute 0.
+    - cron: "7-59/10 * * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -17,7 +19,7 @@ permissions: {}
 jobs:
   ping:
     if: ${{ vars.RENDER_API_URL != '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: GET /health
