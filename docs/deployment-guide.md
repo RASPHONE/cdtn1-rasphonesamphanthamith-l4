@@ -43,7 +43,7 @@ All variables are in `.env` (created in step 3 from `.env.example`, which explai
 | `DB_USER` | PostgreSQL account | `postgres` | no (default `postgres`) |
 | `JWT_SECRET` | Key that signs login tokens. **Empty** = the API makes a random key at each start (users log in again after a restart). To keep logins across restarts, set 32+ random characters, e.g. `openssl rand -hex 32`. Values published in this repository are refused at start-up | *(empty)* | no |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Lifetime of a login token | `60` | no |
-| `DEMO_PASSWORD` | Password given to the demo accounts when the database is first loaded; only its PBKDF2 hash is stored | `manager123` | no |
+| `DEMO_PASSWORD` | Password of the demo accounts, applied at every start of the api container (change it, then `docker compose up -d` or a redeploy); only its PBKDF2 hash is stored | `manager123` | no |
 | `APP_TIMEZONE` | Business time zone ("appointment must be in the future") | `Asia/Ho_Chi_Minh` | no |
 | `LOG_LEVEL` | API log level | `INFO` | no |
 | `API_PORT` | Host port of the API | `8000` | no |
@@ -84,7 +84,7 @@ Check the counts:
 |---|---|---|
 | 1 | `docker compose ps` | `db`, `api` and `web` all show `Up … (healthy)` (if `web` still shows `starting`, wait 20 seconds) |
 | 2 | `curl -s http://localhost:8000/health` (Windows PowerShell: `curl.exe`) | `{"status":"ok","database":"up"}` |
-| 3 | `docker compose exec api pytest -q` | `115 passed` — the full suite, including the 12 Test Report cases on fresh copies of the sample database |
+| 3 | `docker compose exec api pytest -q` | `116 passed` — the full suite, including the 12 Test Report cases on fresh copies of the sample database |
 | 4 | `docker compose exec api pytest -s -v tests/bt3 -k tc10` | one Test Report case with its `observed:` line and `PASSED` (any `tc01` … `tc12`) |
 | 5 | `docker compose exec api python scripts/migrate.py` | `Migration completed: 0 applied, 3 already up to date.` |
 | 6 | `docker compose exec api python scripts/seed.py` | every table `+0`; totals as in section 4 (no duplicates) |
@@ -159,6 +159,11 @@ Steps (once):
 4. Wait until all three are **Available** / **Deployed** (the first API build takes about 5 minutes).
 5. Check: `curl -s https://l4-237480201is09-api.onrender.com/health` → `{"status":"ok","database":"up"}`;
    open the UI, log in as `manager2` → screen M1 lists 27 tickets.
+
+**Changing the demo password later:** service `l4-237480201is09-api` → **Environment** → edit
+`DEMO_PASSWORD` → **Save, rebuild, and deploy**. The API's start-up (`seed.py`) sees that the stored
+hashes no longer match and replaces them; its log shows `Demo password changed to the DEMO_PASSWORD
+value for: manager1, manager2`. The same works locally: edit `.env`, then `docker compose up -d`.
 
 If Render added a suffix to a name because the address was taken, set the API's `CORS_ORIGINS` to
 the real UI address and the UI's `VITE_API_BASE_URL` to the real API address (service →
