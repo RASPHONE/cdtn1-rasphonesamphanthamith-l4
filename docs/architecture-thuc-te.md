@@ -56,6 +56,7 @@ grep -rn  "fetch(" frontend/src/pages frontend/src/components                 # 
 |---|---|
 | Native (README steps) | PostgreSQL 16 · `uvicorn src.main:app` on :8000 · `npm run dev` on :5173 |
 | Docker (`docker compose up -d --build`) | `db` (postgres:16.4-alpine, healthcheck) → `api` (Dockerfile, runs migrate → seed → uvicorn, healthcheck `/health`) → `web` (frontend/Dockerfile, nginx on :8080 published as :5173) |
+| Render free tier (`render.yaml`, BT3) | PostgreSQL 16 on the private network → `api` (same Dockerfile, `DATABASE_URL`, `$PORT`) → static site built from `frontend/` (CDN, HTTPS) |
 
 Configuration comes only from environment variables (`.env.example`, `frontend/.env.example`).
 

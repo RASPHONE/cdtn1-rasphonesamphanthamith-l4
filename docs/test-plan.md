@@ -43,12 +43,12 @@ grading steps exercise (rejecting bad input, re-running the data load):
 | API + PostgreSQL (integration) | Routes → services → SQL repositories on a fresh copy of the sample | TC-01 – TC-05, TC-09, TC-10 | 7 |
 | System | The real `migrate.py` / `seed.py` commands | TC-12 | 1 |
 
-The base of the pyramid is the **81 unit and API tests from BT2** plus 13 regression tests
-added with the BT3 fixes (`tests/test_*.py`, 94 tests, in-memory fakes, no database), 4
+The base of the pyramid is the **81 unit and API tests from BT2** plus 15 regression tests
+added with the BT3 changes (`tests/test_*.py`, 96 tests, in-memory fakes, no database), 4
 database security tests (`tests/bt3/test_password_storage_db.py`, `test_injection_db.py`,
 security checklist items 2 and 4) and 3 database tests for the FR behaviours computed in SQL
 (`tests/bt3/test_fr_coverage_db.py`: FR1 order by due date, FR8 workload, FR9 filter).
-Everything runs with the same command: **113 tests**. SRS §6.2 maps every FR to its cases.
+Everything runs with the same command: **115 tests**. SRS §6.2 maps every FR to its cases.
 The report cases lean on the database because QT-14, FR7 and the assignment guard are
 enforced partly in SQL: only a real database shows that no extra row was written.
 

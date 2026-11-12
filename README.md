@@ -2,6 +2,9 @@
 
 Repository `cdtn1-rasphonesamphanthamith-l4` · Track **SE** · Specialized Graduation Topic I (CĐTN1) · BT2 tag `v0.2` · BT3 tag **`v1.0`**
 
+**Live demo (Render free tier):** https://l4-237480201is09-web.onrender.com — the API sleeps after
+15 minutes without traffic, so the first load can take about a minute (`docs/deployment-guide.md` §9).
+
 ## 1. What it does
 
 A decision-support tool for warranty-center managers at Mekong Mobile. It lists the
@@ -83,7 +86,7 @@ docker compose up -d --build
 `docker compose ps` should show `db`, `api` and `web` as **healthy**. The API container
 builds the schema and loads the sample data automatically.
 UI: http://localhost:5173 · API: http://localhost:8000/health · PostgreSQL on 127.0.0.1:5433.
-Whole test suite inside the running system: `docker compose exec api pytest -q` → `113 passed`.
+Whole test suite inside the running system: `docker compose exec api pytest -q` → `115 passed`.
 Start over from an empty database: `docker compose down -v` then the second command again.
 Requirements, variables, sample data, checks and troubleshooting: **`docs/deployment-guide.md`**.
 
@@ -93,11 +96,11 @@ Requirements, variables, sample data, checks and troubleshooting: **`docs/deploy
 pytest -q
 ```
 
-Expected: `113 passed`. 98 of them use in-memory fakes (`tests/fakes.py`) and need **no database and
+Expected: `115 passed`. 100 of them use in-memory fakes (`tests/fakes.py`) and need **no database and
 no `.env`**. The 15 database tests in `tests/bt3/` (8 Test Report cases, password storage, injection, FR1/FR8/FR9)
 need a reachable PostgreSQL 16 with the DB_* values from `.env`; they create and drop their own
 `<DB_NAME>_test` databases and never touch the application data. Without PostgreSQL they are
-reported as skipped (`98 passed, 15 skipped`). With the Docker database (section 4) run
+reported as skipped (`100 passed, 15 skipped`). With the Docker database (section 4) run
 `DB_PORT=5433 pytest -q`, or run everything in the container: `docker compose exec api pytest -q`.
 
 - One Test Report case with its actual-result line: `pytest -s -v tests/bt3 -k tc05`
