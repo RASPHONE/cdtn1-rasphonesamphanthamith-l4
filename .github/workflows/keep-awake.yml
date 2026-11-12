@@ -1,0 +1,26 @@
+# Optional: keeps the free Render API awake while BT3 is being graded (a free web service
+# sleeps after 15 minutes without traffic and needs about a minute to wake up).
+# Off until the repository variable RENDER_API_URL is set:
+#   GitHub → Settings → Secrets and variables → Actions → Variables → New repository variable
+#   RENDER_API_URL = https://l4-237480201is09-api.onrender.com
+# Delete the variable to stop it. An always-awake service uses about 744 of the 750 free
+# instance hours of a month, so keep no other free web service in the same Render workspace.
+name: keep-awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    if: ${{ vars.RENDER_API_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /health
+        env:
+          URL: ${{ vars.RENDER_API_URL }}
+        run: curl -fsS --max-time 120 --retry 2 "$URL/health"
