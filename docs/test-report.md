@@ -14,11 +14,14 @@ from `docker compose up -d db`, so every command was prefixed with `DB_PORT=5433
 cases were written — TC-08, TC-09, TC-11 — were run again to record the failure.
 **Run 2** = commit `8990458` (after the three fixes): all 12 cases. A case that failed in run 1
 shows both results and both screenshots (`TC-xx-run1.png`, `TC-xx.png`).
-**Run 3** (12/11/2026, by the student) = commit `8f4cfdb` (the `v1.0` application code; `v1.0` only adds tests and documents), on the clean-machine
+**Run 3** (12/11/2026, by the student) = commit `8f4cfdb`, on the clean-machine
 test: fresh clone in an empty folder, `docker compose up -d --build`, then
 `docker compose exec api pytest -v tests/bt3/test_bt3_cases.py` inside the api container
 (Python 3.12.7, pytest 9.1.1): all 12 PASS, the same actual results as run 2 except TC-12, whose
 migrate line now reads "0 applied, 3 already up to date" (BT3 migration 003) · [run3](screenshots/run3.png).
+The later `v1.0` changes (FR1/FR8/FR9 tests, Render support, demo password applied at start)
+leave these cases unchanged; the full suite, TC-01 … TC-12 included, passed again in the same
+folder on `5e9a63d`, the `v1.0` application code (116 passed, [clean-2](screenshots/clean-2.png)).
 
 Priority: **High** = a MUST rule or a security property · **Medium** = SHOULD behaviour or
 message quality · **Low** = convenience.
@@ -45,7 +48,7 @@ message quality · **Low** = convenience.
 | Cases run | 3 (TC-08, TC-09, TC-11) | 12 (TC-01 … TC-12) | 12 (TC-01 … TC-12) · [run3](screenshots/run3.png) |
 | PASS / FAIL | 0 / 3 | 12 / 0 | 12 / 0 |
 | Bugs opened | BUG-011 (Critical), BUG-012 (Major), BUG-013 (Minor) | none | none (BUG-014 … 016 came from the security checklist) |
-| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) | `docker compose exec api pytest -q` → **116 passed** (re-run on `5e9a63d`, the final code) · [clean-2](screenshots/clean-2.png) |
+| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) | `docker compose exec api pytest -q` → **116 passed** (re-run on `5e9a63d`, the `v1.0` application code) · [clean-2](screenshots/clean-2.png) |
 
 **Success criteria (Test Plan §3):** 12/12 cases run with a concrete actual result and a
 screenshot · every implemented rule has a happy-path case and QT-08 is tested on both sides ·

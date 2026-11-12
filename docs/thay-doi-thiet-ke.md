@@ -2,7 +2,7 @@
 
 *This file is re-read during BT2 and BT3 grading (rubric criterion 3: Consistency &
 Accumulation). Entries are appended in order: BT1 feedback (TD-01 … TD-03), BT2 (TD-04 …
-TD-30), BT3 (TD-31 … TD-45, including the BT2 feedback in TD-36).*
+TD-30), BT3 (TD-31 … TD-46, including the BT2 feedback in TD-36).*
 
 **Format.** Changes triggered by lecturer feedback (TD-01 … TD-03, TD-36) use the Session 8
 template: **Feedback · Decision · Reason · Impact**. All other changes use the BT2
@@ -211,7 +211,7 @@ recorded in TD-36 below.*
 
 ### TD-36 BT2 feedback (recorded 12/11/2026)
 - **Feedback:** *"Điểm mạnh: FastAPI + PostgreSQL + React: phân công KTV và lịch hẹn với nhiều quy tắc có kiểm thử, 81 kiểm thử PASS, ba màn hình M1–M3 đủ ba trạng thái, khoá phiên bản đầy đủ, .env.example cho cả backend và frontend, Docker hai lệnh, 30 mục thay đổi thiết kế và 10 bug log. Cần khắc phục: Không có lỗi đáng kể. Giữ phong độ cho BT3. Mục kiểm chứng (bảng 4.2): đạt đủ các mục chung và mục theo track."* — strengths: rule-heavy assignment and scheduling with tests, 81 tests passing, M1–M3 with the three states, full version pinning, `.env.example` for backend and frontend, two-command Docker, 30 design-change entries and 10 bugs logged; nothing significant to fix; every common and track item of table 4.2 met.
-- **Decision:** KEEP — no correction requested. The practices the feedback names are continued in BT3: every change is logged here (TD-31 … TD-45) and every bug in `docs/bug-log.md` (BUG-011 … BUG-016), versions stay pinned (TD-38), and the two-command Docker start is kept and is now also the way the full test suite runs (TD-41).
+- **Decision:** KEEP — no correction requested. The practices the feedback names are continued in BT3: every change is logged here (TD-31 … TD-46) and every bug in `docs/bug-log.md` (BUG-011 … BUG-016), versions stay pinned (TD-38), and the two-command Docker start is kept and is now also the way the full test suite runs (TD-41).
 - **Reason:** "Giữ phong độ" asks for the same standard on the new BT3 components; the lecturer hit no failure while running the repository, so no bug comes from the feedback itself.
 - **Impact:** none on code; this entry replaces the "not received yet" note of the BT3 section. The test count named in the feedback (81) is the BT2 state; BT3 brings it to 116 (README §5).
 
@@ -260,10 +260,10 @@ recorded in TD-36 below.*
 - **Reason:** found during the Render deployment: the password typed for `DEMO_PASSWORD` at Blueprint creation was not the intended one, and correcting the variable had no effect because the accounts already existed; the only way out would have been opening the private database to run SQL. Now the variable is the single place the demo password is set.
 - **Impact:** `scripts/seed.py`, `tests/bt3/test_password_storage_db.py`, `.env.example`, Deployment Guide §3 and §9; suite 115 → 116 tests. Each start verifies two PBKDF2 hashes (about 0.2 s, longer on a free 0.1-CPU instance).
 
-## After tag `v1.0` (maintenance, no change to the graded system)
+## BT3 — CI settings before tagging `v1.0` (Session 16)
 
 ### TD-46 CI actions on Node 24, fixed runner image, keep-awake schedule off the hour
 - **Change:** `ci.yml` uses `actions/checkout@v6`, `actions/setup-python@v6` and `actions/setup-node@v6` (Node 24) and runs on `ubuntu-24.04` instead of `ubuntu-latest`; `keep-awake.yml` runs at minutes 7, 17, … 57 (`7-59/10`) instead of every 10 minutes from minute 0, also on `ubuntu-24.04`.
 - **Reason:** the CI log warned that the v4/v5 actions target the deprecated Node 20 and that `ubuntu-latest` is moving to Ubuntu 26 (a fixed image keeps CI reproducible, like the pinned versions elsewhere); the keep-awake schedule produced no automatic run in two hours, and GitHub delays or drops scheduled runs at the start of each hour.
-- **Impact:** `.github/workflows/` only; application, tests, Docker and the `v1.0` tag are unchanged.
+- **Impact:** `.github/workflows/` only; application, tests and Docker are unchanged. `v1.0` was first tagged before this change and re-tagged after it, before submission, so the tag includes these settings.
 

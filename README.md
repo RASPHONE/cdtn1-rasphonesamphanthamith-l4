@@ -177,5 +177,5 @@ on purpose (BT1 feedback). The UI text is Vietnamese.
 - [x] BT3 — Test Plan, Test Report (TC-01 … TC-12), Bug Log (BUG-011 … BUG-016), Deployment Guide,
   security checklist, API reference, Docker clean-machine package, public demo on Render (tag `v1.0`)
 
-Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-45) ·
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-46) ·
 bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.
