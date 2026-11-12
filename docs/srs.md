@@ -26,15 +26,15 @@ Manage technician assignment and appointment scheduling for warranty tickets: th
 
 ### 1.3 Out of scope and intentionally deferred
 
-The following capabilities are explicitly excluded from v0.2:
+The following capabilities are explicitly excluded from the prototype (tags `v0.2` and `v1.0`; BT3 added no feature):
 
 1. **Customer-facing portal.** Customers do not log in, confirm, reschedule, or receive system notifications. The center manager acts on the customer's behalf.
-2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in v0.2.
+2. **Notification infrastructure.** No SMS, email, or push notification is sent by the system in the prototype.
 3. **Technician self-service UI.** The Technician actor is specified but deferred to v1.1.
 4. **Reporting and analytics.** Dashboards belong to flows L6/L10, not L4.
 5. **Production authentication.** Account management, password change or reset, and an identity provider are out of scope. A minimal demo login (US14/FR12) exists only so the server can identify the caller's center and role; its two demo accounts are stored in table `app_user` with hashed passwords (BT3 S3, TD-37).
-6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but v0.2 only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
-7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in v0.2. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
+6. **On-site check appointment workflow.** The appointment type `KIEM_TRA_TAI_CHO` is retained in the database enum for historical/generated data compatibility, but the prototype only allows creating `GIAO_MAY` and `NHAN_MAY` appointments.
+7. **Structured appointment location and appointment note.** No `location` or `note` field is stored for appointments in the prototype. Handover/receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 
 ### 1.4 Terminology
 
@@ -62,7 +62,7 @@ This table is the single source of truth for diagrams, wireframes, DDL, and API 
 | Appointment date | Ngày hẹn | `appointment.ngay_hen` | Date of the appointment |
 | Start time | Giờ bắt đầu | `appointment.gio_bat_dau` | Appointment start time |
 | End time | Giờ kết thúc | `appointment.gio_ket_thuc` | Appointment end time |
-| Appointment type | Loại lịch hẹn | `appointment.loai` | `GIAO_MAY`, `NHAN_MAY`, `KIEM_TRA_TAI_CHO`; v0.2 UI only creates `GIAO_MAY` or `NHAN_MAY` |
+| Appointment type | Loại lịch hẹn | `appointment.loai` | `GIAO_MAY`, `NHAN_MAY`, `KIEM_TRA_TAI_CHO`; the UI only creates `GIAO_MAY` or `NHAN_MAY` |
 | Appointment status | Trạng thái lịch hẹn | `appointment.trang_thai` | `DA_DAT`, `DA_XAC_NHAN`, `HOAN_TAT`, `KHACH_HUY`, `KHACH_KHONG_DEN` |
 | Soft-deleted appointment | Lịch hẹn đã xóa mềm | `appointment.is_deleted` | Appointment row preserved but marked deleted; excluded from default lists and conflict checks |
 | Technician skill maintenance | Quản lý tay nghề kỹ thuật viên | `technician_skill` CRUD | Create, read, update, and delete proficiency records used for QT-08 eligibility |
@@ -91,10 +91,10 @@ tickets (the dataset contains no `MOI` ticket, so FR1 would otherwise be empty);
 
 Only L4-relevant roles are listed.
 
-| Role | Type | Status in v0.2 | What they can do | What they cannot do |
+| Role | Type | Status in the prototype | What they can do | What they cannot do |
 |---|---|---|---|---|
 | Center Manager | Primary actor | Implemented | View unassigned tickets, view qualified technicians, assign/reassign, create/update/confirm and soft-delete appointments, maintain technician skills (API only) | Cannot bypass one-technician rule or eligibility rule |
-| Technician | Primary actor | Specified, deferred to v1.1 | In specification: view own assigned tickets and appointment times | No system access in v0.2 |
+| Technician | Primary actor | Specified, deferred to v1.1 | In specification: view own assigned tickets and appointment times | No system access in the prototype |
 | Customer | Stakeholder only | Not an actor | Party to the appointment agreement; brings or receives the device | Does not log in, confirm, reschedule, or receive system notifications |
 
 Role permissions:
@@ -125,7 +125,7 @@ that follows from the cited items without being stated in them.
 | FR3 | The system shall assign a warranty ticket to at most one technician at any point in time. | QT-07 | MUST |
 | FR4 | The system shall reject any assignment where the selected technician does not satisfy FR2. | QT-08 | MUST |
 | FR5 | The system shall require and store a reason whenever a ticket's assigned technician is changed. | QT-07 | MUST |
-| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in v0.2. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the v0.2 UI. | L4 scope ("đặt lịch hẹn giao – nhận máy"); glossary *Lịch hẹn* | MUST |
+| FR6 | The system shall create or update an appointment linked to an assigned ticket, with appointment type `GIAO_MAY` or `NHAN_MAY` in the prototype. `KIEM_TRA_TAI_CHO` is retained in the database for compatibility but is deferred from the UI. | L4 scope ("đặt lịch hẹn giao – nhận máy"); glossary *Lịch hẹn* | MUST |
 | FR7 | The system shall detect and block saving when a new or updated appointment overlaps in time with an active appointment of the same technician on the same `ngay_hen`. Active statuses are `DA_DAT` and `DA_XAC_NHAN`. | L4 scope ("kiểm tra trùng lịch") | MUST |
 | FR8 | The system shall display each qualified technician's current workload count on the assignment screen. Workload counts assigned tickets with status `DA_PHAN_CONG`, `DANG_XU_LY`, or `CHO_LINH_KIEN`. | V3; L4 scope ("khối lượng công việc hiện tại"); Center Manager interview #1, #2 | SHOULD |
 | FR9 | The system shall filter the unassigned ticket list by issue category and priority. | Derived: QT-08 (eligibility is per issue category), QT-04 (priority sets the SLA); Center Manager interview #3 | SHOULD |
@@ -159,7 +159,7 @@ that follows from the cited items without being stated in them.
 
 | US | Story | Status | Note |
 |---|---|---|---|
-| US7 | Technician views own assigned tickets | Deferred to v1.1 | Technician-facing UI is not implemented in v0.2 |
+| US7 | Technician views own assigned tickets | Deferred to v1.1 | Technician-facing UI is not implemented in the prototype |
 | US9 | View assignment history | Deferred / COULD | Possible future audit screen based on `ticket_status_log` |
 | US10 | Record appointment cancellation or no-show | Deferred / COULD | Would use `KHACH_HUY` and `KHACH_KHONG_DEN` |
 | US11 | Customer views/confirms/reschedules appointment online | WON'T | Customer-facing portal is intentionally excluded |
@@ -260,10 +260,10 @@ Quoted messages are the API `message` texts (or, for UI-only states, their meani
 
 ### Design notes
 
-1. **Appointment conflict is blocking in v0.2.** Conflict detection is enforced at the service layer. If an active overlap exists, the system blocks saving until the manager changes the time or cancels the operation. No override is allowed in v0.2.
+1. **Appointment conflict is blocking in the prototype.** Conflict detection is enforced at the service layer. If an active overlap exists, the system blocks saving until the manager changes the time or cancels the operation. No override is allowed in the prototype.
 2. **External master data boundary.** Customer, device/product, service center, and employee master data are external to the L4 prototype. The L4 ticket stores snapshot fields needed for assignment and appointment display: `customer_name`, `customer_phone`, and `serial_no`. `center_id` is used for center scoping. `ticket_status_log.changed_by` stores the acting user identity without a foreign key to an employee table.
 3. **Appointment snapshots.** The `appointment` table stores `technician_id` and `center_id` as scheduling-time snapshots. This is justified because reassignment can occur after scheduling, and the appointment event must preserve the technician and center responsible at the time of scheduling.
-4. **No appointment location or note in v0.2.** Handover and receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
+4. **No appointment location or note in the prototype.** Handover and receipt appointments are associated with the ticket's service center. On-site address handling and appointment notes are deferred.
 5. **`ticket.category_id` is NOT NULL.** L2 classifies the issue category before L4 consumes the ticket; eligibility (QT-08) cannot be evaluated without it. Unclassified tickets never enter the L4 queue.
 6. **Appointment soft delete.** `appointment.is_deleted` marks an appointment as deleted while preserving the row. Default appointment reads and FR7 conflict checks filter `is_deleted = FALSE`. Completed appointments (`trang_thai = HOAN_TAT`) cannot be soft-deleted in the BT2 prototype.
 7. **Technician skill delete.** Deleting a `technician_skill` row removes the technician’s eligibility for that issue category. This table is configuration/support data for QT-08 and is not covered by QT-13 hard-delete protection.
@@ -288,7 +288,7 @@ Quoted messages are the API `message` texts (or, for UI-only states, their meani
 
 **Non-human actors considered:** Time / Scheduler. Ruled out because L4 contains no time-triggered use case — due dates are generated at ticket creation (L2), not at assignment.
 
-UC5 and UC6 are specified use cases without an associated FR at v0.2. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
+UC5 and UC6 are specified use cases without an associated FR in the prototype. This is permitted: every FR must map to a Use Case, but not every Use Case must map to an FR.
 
 ### 6.2 Functional requirement traceability (Session 5 extended matrix)
 
@@ -337,4 +337,4 @@ on the database (`tests/bt3/test_fr_coverage_db.py`). TC-05 (QT-15 / NFR4) and T
 | v0.5 | BT2 implementation (Session 11) | Added US14/FR12 acceptance criteria for minimal demo authentication; clarified `technician_skill` CRUD as a BT2 API-only scope adjustment supporting the ≥2 full-CRUD requirement; aligned appointment behavior with the API contract: creation/confirmation uses `DA_XAC_NHAN`, PATCH is limited to `DA_XAC_NHAN`, completed appointments cannot be soft-deleted (`appointment_completed_cannot_delete`), and reassignment reason must be 5–255 characters; recorded implementation alignment for NFR5 atomic assignment transactions, qualified-technician response shape `{ "ticket_id", "items": [...] }`, and assignment response `log_id`. | BT2 implementation alignment TD-09 to TD-14 |
 | v0.6 | BT2 finalisation (Session 12) | §1.5 rewritten for the actual committed sample; design notes 8–10 (customer snapshot fixture, concurrent assignment guard, business clock); NFR4/QT-15 masking now implemented in the service layer; supporting read endpoints `GET /api/tickets/{ticket_id}` (US2/US4 summary) and `GET /api/issue-categories` (US8 filter) added to the API contract. Consistency pass: US1 AC3 and NFR3 wording (lists are scoped, direct access returns 403), QT-04 working-day clause restored, matrix FR10 screen and column reads, §1.3 item 5, note on message language. | TD-15 to TD-30 |
 | v0.7 | BT3 (Session 13–14) | §3.1 Source column given one meaning (origin of the requirement) and filled for FR6–FR9 from the case study; FR10–FR12 now cite course constraints CC-01/CC-02, added to §5. | TD-31 |
-| v0.8 | BT3 (Session 15–16) | §1.3 item 5: the demo accounts are stored in `app_user` with hashed passwords; matrix FR12 data table `app_user`; §6.2 "Test case (BT3)" column filled with the Test Report cases and automated tests of each FR (it read "BT3" since BT1). | TD-37 (BUG-014), TD-43 |
+| v0.8 | BT3 (Session 15–16) | §1.3 item 5: the demo accounts are stored in `app_user` with hashed passwords; matrix FR12 data table `app_user`; §6.2 "Test case (BT3)" column filled with the Test Report cases and automated tests of each FR (it read "BT3" since BT1). Scope statements say "the prototype" instead of "v0.2" (the scope is the same at `v1.0`). | TD-37 (BUG-014), TD-43 |

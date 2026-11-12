@@ -160,7 +160,8 @@ docs/                    srs.md · api-contract.md · architecture-thuc-te.md (a
                          ai-disclosure.md · bug-log.md · test-plan.md · test-report.md · screenshots/
                          api-docs/ (API reference + openapi.json) · deployment-guide.md · checklist-bao-mat.md
                          BT1 diagrams (.drawio) and exports/
-Dockerfile · frontend/Dockerfile · docker-compose.yml · .github/workflows/ci.yml
+Dockerfile · frontend/Dockerfile · docker-compose.yml · render.yaml (public demo, Deployment Guide §9)
+.github/workflows/         ci.yml (tests, lint, build on every push) · keep-awake.yml (optional, Render)
 ```
 
 Naming convention: identifiers we choose are English (`snake_case` in Python, `camelCase`
@@ -174,7 +175,7 @@ on purpose (BT1 feedback). The UI text is Vietnamese.
 - [x] BT1 — analysis & design (PDF submitted; design files in `docs/`)
 - [x] BT2 — core module, tests, M1–M3 screens, Docker (tag `v0.2`)
 - [x] BT3 — Test Plan, Test Report (TC-01 … TC-12), Bug Log (BUG-011 … BUG-016), Deployment Guide,
-  security checklist, API reference, Docker clean-machine package (tag `v1.0`)
+  security checklist, API reference, Docker clean-machine package, public demo on Render (tag `v1.0`)
 
-Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-42) ·
+Design changes since BT1 (what · why · impact): `docs/thay-doi-thiet-ke.md` (TD-01 … TD-45) ·
 bugs found and fixed: `docs/bug-log.md` · AI usage: `docs/ai-disclosure.md`.

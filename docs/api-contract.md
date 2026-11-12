@@ -1,4 +1,4 @@
-# `docs/api-contract.md` — API Contract (L4, Track SE, BT2 target tag v0.2)
+# `docs/api-contract.md` — API Contract (L4, Track SE; tags v0.2 and v1.0)
 
 Updated for BT2. Every business endpoint traces to a User Story in SRS §6.2.
 Companion artifacts: `docs/srs.md` (v0.8), `docs/erd_l4_en.dbd`, `docs/ddl_l4.sql`,
@@ -144,13 +144,13 @@ overlapping interval).
 - 422 `ticket_not_assignable` — ticket has no technician, is not a warranty ticket, or is closed.
 - 409 `appointment_conflict` — FR7; body includes `conflicts: [ {appointment_id, ticket_id, ngay_hen, gio_bat_dau, gio_ket_thuc, trang_thai} ]`.
   Intervals that only touch (09:00–10:00 then 10:00–11:00) do not conflict.
-- 422 `appointment_type_deferred` — `KIEM_TRA_TAI_CHO` not creatable in v0.2.
+- 422 `appointment_type_deferred` — `KIEM_TRA_TAI_CHO` not creatable in this version.
 - 422 `appointment_in_past` — "Appointment time must be in the future." (US5 AC2)
 - 422 `invalid_time_range` — CON-01 (`gio_ket_thuc > gio_bat_dau`).
 
 ### 3.6 PATCH /api/appointments/{appointment_id}
 Request: optional subset `{ "loai", "ngay_hen", "gio_bat_dau", "gio_ket_thuc", "trang_thai" }`.
-In v0.2 `trang_thai` may **only** be set to `DA_XAC_NHAN` (confirm); cancellation
+In this version `trang_thai` may **only** be set to `DA_XAC_NHAN` (confirm); cancellation
 statuses (`KHACH_HUY`, `KHACH_KHONG_DEN`) are deferred with US10.
 Conflict check excludes the appointment being updated.
 - 200 updated object · 409 `appointment_conflict` (with `conflicts`) · 422 (same codes as 3.5)
@@ -312,7 +312,7 @@ Format errors are rejected by the request schemas with `400 bad_request` and a
 |---|---|---|---|---|---|
 | 3.3 / 3.4 | `technician_id` | yes | int | exists, active, same center, proficiency ≥ 3 (QT-08); 3.4: not the current technician | `technician_not_found` (404) · `technician_not_qualified` (422) · 3.4: `same_technician` (422) |
 | 3.4 | `reason` | yes (reassign) | string 5–255 after trim | omitted, blank, < 5 or > 255 | `reason_required` (422) |
-| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in v0.2 | `bad_request` (400) unknown value · `appointment_type_deferred` (422) `KIEM_TRA_TAI_CHO` |
+| 3.5 / 3.6 | `loai` | yes | enum | `GIAO_MAY` / `NHAN_MAY` in this version | `bad_request` (400) unknown value · `appointment_type_deferred` (422) `KIEM_TRA_TAI_CHO` |
 | 3.5 / 3.6 | `ngay_hen` + `gio_bat_dau` | yes | date + time | strictly after now (APP_TIMEZONE) | `appointment_in_past` (422) |
 | 3.5 / 3.6 / 3.7 | `gio_bat_dau`, `gio_ket_thuc` | yes | time | CON-01 end > start | `invalid_time_range` (422) |
 | 3.1 | `category_id`, `priority` | no | int ≥ 1 / enum `CAO\|TRUNG_BINH\|THAP` | valid value | `bad_request` (400) |
@@ -332,7 +332,7 @@ Format errors are rejected by the request schemas with `400 bad_request` and a
   including exception paths.
 - Concurrency: appointment conflict detection is a service-layer check (SRS §5
   note 1); two simultaneous appointment submits for the same slot are
-  theoretically possible and accepted in v0.2 (one manager per center).
+  theoretically possible and accepted in this version (one manager per center).
   Assignment is protected: the guarded UPDATE lets only one concurrent request
   win (SRS §5 note 9).
 

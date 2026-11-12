@@ -1,10 +1,10 @@
 # Design Change Log
 
 *This file is re-read during BT2 and BT3 grading (rubric criterion 3: Consistency &
-Accumulation). When BT2 feedback arrives (Session 13+), append new entries at the end
-of this file with the next TD-xx codes.*
+Accumulation). Entries are appended in order: BT1 feedback (TD-01 … TD-03), BT2 (TD-04 …
+TD-30), BT3 (TD-31 … TD-45, including the BT2 feedback in TD-36).*
 
-**Format.** Changes triggered by lecturer feedback (TD-01 … TD-03) use the Session 8
+**Format.** Changes triggered by lecturer feedback (TD-01 … TD-03, TD-36) use the Session 8
 template: **Feedback · Decision · Reason · Impact**. All other changes use the BT2
 three-line format: **Change** (what) · **Reason** (why) · **Impact** (which components).
 
@@ -211,7 +211,7 @@ recorded in TD-36 below.*
 
 ### TD-36 BT2 feedback (recorded 12/11/2026)
 - **Feedback:** *"Điểm mạnh: FastAPI + PostgreSQL + React: phân công KTV và lịch hẹn với nhiều quy tắc có kiểm thử, 81 kiểm thử PASS, ba màn hình M1–M3 đủ ba trạng thái, khoá phiên bản đầy đủ, .env.example cho cả backend và frontend, Docker hai lệnh, 30 mục thay đổi thiết kế và 10 bug log. Cần khắc phục: Không có lỗi đáng kể. Giữ phong độ cho BT3. Mục kiểm chứng (bảng 4.2): đạt đủ các mục chung và mục theo track."* — strengths: rule-heavy assignment and scheduling with tests, 81 tests passing, M1–M3 with the three states, full version pinning, `.env.example` for backend and frontend, two-command Docker, 30 design-change entries and 10 bugs logged; nothing significant to fix; every common and track item of table 4.2 met.
-- **Decision:** KEEP — no correction requested. The practices the feedback names are continued in BT3: every change is logged here (TD-31 … TD-42) and every bug in `docs/bug-log.md` (BUG-011 … BUG-016), versions stay pinned (TD-38), and the two-command Docker start is kept and is now also the way the full test suite runs (TD-41).
+- **Decision:** KEEP — no correction requested. The practices the feedback names are continued in BT3: every change is logged here (TD-31 … TD-45) and every bug in `docs/bug-log.md` (BUG-011 … BUG-016), versions stay pinned (TD-38), and the two-command Docker start is kept and is now also the way the full test suite runs (TD-41).
 - **Reason:** "Giữ phong độ" asks for the same standard on the new BT3 components; the lecturer hit no failure while running the repository, so no bug comes from the feedback itself.
 - **Impact:** none on code; this entry replaces the "not received yet" note of the BT3 section. The test count named in the feedback (81) is the BT2 state; BT3 brings it to 116 (README §5).
 
