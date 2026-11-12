@@ -45,7 +45,7 @@ message quality · **Low** = convenience.
 | Cases run | 3 (TC-08, TC-09, TC-11) | 12 (TC-01 … TC-12) | 12 (TC-01 … TC-12) · [run3](screenshots/run3.png) |
 | PASS / FAIL | 0 / 3 | 12 / 0 | 12 / 0 |
 | Bugs opened | BUG-011 (Critical), BUG-012 (Major), BUG-013 (Minor) | none | none (BUG-014 … 016 came from the security checklist) |
-| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) | `docker compose exec api pytest -q` → **116 passed** · [clean-2](screenshots/clean-2.png) |
+| Whole suite, one command | — | `pytest -q` → **98 passed** · [full-suite](screenshots/full-suite.png) | `docker compose exec api pytest -q` → **116 passed** (re-run on `5e9a63d`, the final code) · [clean-2](screenshots/clean-2.png) |
 
 **Success criteria (Test Plan §3):** 12/12 cases run with a concrete actual result and a
 screenshot · every implemented rule has a happy-path case and QT-08 is tested on both sides ·

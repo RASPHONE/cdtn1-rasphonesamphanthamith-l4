@@ -140,6 +140,8 @@ with the lowest workload shown in M2.
 **Live:** UI https://l4-237480201is09-web.onrender.com · API https://l4-237480201is09-api.onrender.com/health
 (interactive reference: `/docs`). Demo accounts `manager1` (center 1) and `manager2` (center 2);
 their password is the `DEMO_PASSWORD` set on Render, given in the BT3 report, not in this repository.
+Deployed on 12/11/2026 from commit `5e9a63d`; evidence: `docs/screenshots/deploy-1.png` (the live UI)
+and `deploy-2.png` (the API's variables on Render, values hidden).
 
 `render.yaml` (a Render Blueprint) describes the three parts, all on Render's free plan in Singapore:
 

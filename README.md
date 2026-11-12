@@ -4,6 +4,7 @@ Repository `cdtn1-rasphonesamphanthamith-l4` · Track **SE** · Specialized Grad
 
 **Live demo (Render free tier):** https://l4-237480201is09-web.onrender.com — the API sleeps after
 15 minutes without traffic, so the first load can take about a minute (`docs/deployment-guide.md` §9).
+Demo accounts `manager1` / `manager2`; the live site's password is given in the BT3 report, not in the repository.
 
 ## 1. What it does
 
