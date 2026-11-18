@@ -39,3 +39,43 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  # Experiment (trend talk, Session 18): checklist items 1 and 7 on every push instead of only
+  # by hand with scripts/security-checks.sh. Runs beside backend and frontend, not after them.
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }   # item 1 reads the whole history, not only the last commit
+      - name: "Item 1: no .env or key file in the history or the tree"
+        run: |
+          if [ -n "$(git log --all --oneline -- .env frontend/.env)" ]; then
+            echo "::error::a .env file was committed"; exit 1; fi
+          if git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$'; then
+            echo "::error::a .env or key file is tracked"; exit 1; fi
+      - name: "Item 1: no secret value written in code (allow-list: .github/secret-allowlist.txt)"
+        run: |
+          # Wider than the course grep: also matches `name: str = "value"` (missed BUG-011 in v0.2).
+          P="(password|secret|api_key|token)[a-z_]*[[:space:]]*(:[[:space:]]*[A-Za-z_.|[:space:]]+)?[:=][[:space:]]*['\"][^'\"]{4,}['\"]"
+          test -f .github/secret-allowlist.txt || { echo "::error::allow-list file missing"; exit 1; }
+          hits=$(grep -rniE "$P" src/ scripts/ frontend/src/ docker-compose.yml Dockerfile frontend/Dockerfile || true)
+          hits=$(printf '%s\n' "$hits" | grep -vF -f .github/secret-allowlist.txt | grep . || true)
+          if [ -n "$hits" ]; then echo "$hits"; echo "::error::possible secret in code"; exit 1; fi
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: "Item 7: every Python dependency pinned with =="
+        run: |
+          test "$(grep -cvE '^[[:space:]]*(#|$)' requirements.txt)" = "$(grep -cE '^[^#[:space:]][^=]*==[0-9]' requirements.txt)"
+      - name: "Item 7: pip-audit (blocking)"
+        run: |
+          pip install -q pip-audit==2.7.3
+          pip-audit -r requirements.txt
+      - uses: actions/setup-node@v6
+        with: { node-version: "22.14.0" }
+      - name: "Item 7: npm audit, code shipped to the browser (blocking)"
+        working-directory: frontend
+        run: npm audit --omit=dev
+      - name: "Item 7: npm audit, build tools (report only, does not fail the run)"
+        working-directory: frontend
+        continue-on-error: true
+        run: npm audit
